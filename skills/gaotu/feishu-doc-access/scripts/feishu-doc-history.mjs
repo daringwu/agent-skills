@@ -9,7 +9,7 @@ function usage() {
   node feishu-doc-history.mjs --doc <url-or-token> --out <output-prefix> [--profile <profile>] [--as user|bot] [--page-size 20] [--timezone-offset +08:00]
 
 Examples:
-  node feishu-doc-history.mjs --doc 'https://gaotuedu.feishu.cn/wiki/xxx' --profile codex-feishu-history --out outputs/doc-history
+  node feishu-doc-history.mjs --doc 'https://<your-org>.feishu.cn/wiki/<token>' --profile <profile> --out outputs/doc-history
   node feishu-doc-history.mjs --doc docxToken --out work/history --timezone-offset +08:00
 `);
   process.exit(2);

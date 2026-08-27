@@ -1,6 +1,6 @@
 ---
 name: feishu-doc-access
-description: Access, read, export, and audit Feishu/Lark Docs, Wiki pages, Docx documents, Drive metadata, and document edit history using lark-cli or Feishu OpenAPI. Use when the user provides gaotuedu.feishu.cn, feishu.cn, larksuite.com wiki/docx/docs URLs or asks to read Feishu documents, fetch Feishu wiki content, inspect Feishu edit history, summarize document changes by date, compare historical revisions, resolve document tokens, or reason about temporary vs long-lived Feishu authorization and data-safety implications.
+description: Access, read, export, and audit Feishu/Lark Docs, Wiki pages, Docx documents, Drive metadata, and document edit history using lark-cli or Feishu OpenAPI. Use when the user provides feishu.cn, larksuite.com, or org-specific Feishu wiki/docx/docs URLs or asks to read Feishu documents, fetch Feishu wiki content, inspect Feishu edit history, summarize document changes by date, compare historical revisions, resolve document tokens, or reason about temporary vs long-lived Feishu authorization and data-safety implications.
 ---
 
 # Feishu Doc Access

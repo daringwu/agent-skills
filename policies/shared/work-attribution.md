@@ -33,7 +33,7 @@
 ### 2. 怎么从代码仓库归纳
 
 - 用什么作为输入：commit message、PR 标题、diff 范围、分支名？
-- 多仓库时怎么合并（`content-analysis-atom` / `gaia-widgets` / `cronus` 各自独立还是按业务合并）？
+- 一个人同时在多个仓库上推进时怎么合并（每个仓库各自独立成任务，还是按业务归并）？
 - 怎么处理没有 commit 的工作（评审、联调、答疑）？
 - merge commit、revert、格式化提交怎么排除？
 

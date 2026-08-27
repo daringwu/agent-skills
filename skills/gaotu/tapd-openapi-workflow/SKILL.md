@@ -38,13 +38,13 @@ Use this skill for TAPD Open API work: connecting an app, reading the official d
 # ~/.config/agent-skills/tapd-openapi-workflow/env   (chmod 600)
 TAPD_CLIENT_ID=tapd-app-...
 TAPD_CLIENT_SECRET=...
-TAPD_WORKSPACE_ID=53165807
-TAPD_DEFAULT_OWNER=武佳宁wujianing02
+TAPD_WORKSPACE_ID=<项目 ID，从 TAPD 项目 URL 取>
+TAPD_DEFAULT_OWNER=<workspaces/users 返回的完整账号串>
 ```
 
   Pass it with `--env-file ~/.config/agent-skills/tapd-openapi-workflow/env`. Preflight reads the same file.
 
-- Use project URLs to infer `workspace_id`; in `https://www.tapd.cn/tapd_fe/53165807/...`, the project ID is `53165807`.
+- Use project URLs to infer `workspace_id`: in `https://www.tapd.cn/tapd_fe/<workspace_id>/...`, the numeric path segment is the project ID.
 - For current-user updates, pass `current_user` as the exact TAPD user field, often the full display/account string returned by `workspaces/users`, not just an English suffix.
 
 ## Workflow
@@ -88,13 +88,14 @@ Examples:
 ```bash
 node <skill 目录>/scripts/tapd_tool.mjs token-check --env-file ~/.config/agent-skills/tapd-openapi-workflow/env
 node <skill 目录>/scripts/tapd_tool.mjs workspace --env-file ~/.config/agent-skills/tapd-openapi-workflow/env
-node <skill 目录>/scripts/tapd_tool.mjs iteration --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652
-node <skill 目录>/scripts/tapd_tool.mjs daily-hours --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652 --prefix '<policy:taskNamePrefix.frontend>'
-node <skill 目录>/scripts/tapd_tool.mjs create-task --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652 --story-id 1153165807001389831 --name '<policy:taskNamePrefix.frontend>示例任务' --status open
-node <skill 目录>/scripts/tapd_tool.mjs add-timesheet --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --task-id 1153165807001390153 --spentdate 2026-08-16 --timespent 2 --memo '报告展示收尾'
+node <skill 目录>/scripts/tapd_tool.mjs iteration --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id>
+node <skill 目录>/scripts/tapd_tool.mjs daily-hours --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id> --prefix '<policy:taskNamePrefix.frontend>'
+node <skill 目录>/scripts/tapd_tool.mjs create-task --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id> --story-id <story-id> --name '<policy:taskNamePrefix.frontend>示例任务' --status open
+node <skill 目录>/scripts/tapd_tool.mjs add-timesheet --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --task-id <task-id> --spentdate <YYYY-MM-DD> --timespent <hours> --memo '<做了什么>'
 ```
 
-示例里的 `<policy:...>` 是占位符，实际值取 `policies/policy.json`，不要在本文档里写死。
+示例里 `<...>` 都是占位符：`<policy:...>` 的实际值取 `policies/policy.json`，
+ID 类参数从 TAPD 现查，项目相关的值取机器级配置文件。本文档不写死任何真实值。
 
 Prefer the script for reads, daily-hour audits, and simple writes. For complex migrations, write a one-off script that follows the same patterns: idempotent reads, soft-delete rather than hard-delete, one TAPD row per task/date timesheet, and final verification.
 

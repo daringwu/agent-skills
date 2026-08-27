@@ -79,6 +79,9 @@ skills/<scope>/<name>/policies/
 
 - SKILL.md 和 references **不得出现口径字面值**（包括命令示例里的）。示例用 `<policy:ruleName>` 占位。
 - 口径不在散文里重复列举，需要人类可读版本时现读 `policies/`。
+- **仓库里不出现任何环境专属的真实值**：项目 ID、迭代/任务 ID、账号字段、组织域名一律用 `<占位符>`。
+  真实值属于机器级配置（`~/.config/agent-skills/<name>/env`）或现查 API。同一个理由：
+  写死的值会不同步，而且让仓库变成需要脱敏才能给别人看的东西。
 
 ## 目录结构
 

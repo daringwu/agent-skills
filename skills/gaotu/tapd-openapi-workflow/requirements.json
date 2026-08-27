@@ -45,7 +45,7 @@
       "label": "目标项目 ID",
       "order": 3,
       "check": ["TAPD_WORKSPACE_ID"],
-      "guide": "从 TAPD 项目 URL 里取数字段，例如 https://www.tapd.cn/tapd_fe/53165807/... 里的 53165807，写入凭据文件：\n  TAPD_WORKSPACE_ID=53165807\nAI 不代做：只有你知道要操作哪个项目。"
+      "guide": "从 TAPD 项目 URL 里取数字段：https://www.tapd.cn/tapd_fe/<workspace_id>/... 中间那段数字就是项目 ID，写入凭据文件：\n  TAPD_WORKSPACE_ID=<项目 ID>\nAI 不代做：只有你知道要操作哪个项目。"
     },
 
     "tapd-default-owner": {
