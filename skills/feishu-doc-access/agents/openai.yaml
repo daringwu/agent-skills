@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feishu Doc Access"
+  short_description: "Read Feishu docs, metadata, and history safely"
+  default_prompt: "Use $feishu-doc-access to read this Feishu wiki/doc and summarize its edit history."

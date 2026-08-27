@@ -1,0 +1,6 @@
+interface:
+  display_name: "TAPD OpenAPI Workflow"
+  short_description: "Sync TAPD tasks and work logs"
+  default_prompt: "Use $tapd-openapi-workflow to connect to TAPD, sync tasks and timesheets, and verify iteration hours."
+policy:
+  allow_implicit_invocation: true

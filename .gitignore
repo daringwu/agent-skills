@@ -1,0 +1,14 @@
+# 凭据与本机状态一律不进仓库（真实位置：~/.config/agent-skills/<skill>/env）
+*.env
+.env*
+env
+state.json
+
+# 任务产物
+outputs/
+work/
+
+# 杂项
+.DS_Store
+node_modules/
+*.log

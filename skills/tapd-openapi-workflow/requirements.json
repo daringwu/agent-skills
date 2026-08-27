@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "name": "tapd-openapi-workflow",
+  "summary": "通过 TAPD Open API 读写需求/任务/工时",
+  "defaultCacheDays": 7,
+
+  "capabilities": {
+    "read": {
+      "label": "读取项目、迭代、需求、任务、工时",
+      "description": "只读操作：核对 workspace、拉迭代与任务列表、统计每日工时。",
+      "requires": ["node", "tapd-credentials", "tapd-workspace-id", "tapd-token", "tapd-workspace-auth"]
+    },
+    "write": {
+      "label": "创建/更新任务与写入工时",
+      "description": "写操作：建任务、改状态、写 timesheet、重排每日工时。需要 owner 字段才能正确归属。",
+      "requires": ["node", "tapd-credentials", "tapd-workspace-id", "tapd-token", "tapd-workspace-auth", "tapd-default-owner"]
+    }
+  },
+
+  "requirements": {
+    "node": {
+      "tier": "manual",
+      "kind": "binary",
+      "label": "Node.js 20+（脚本用内置 fetch，无第三方依赖）",
+      "order": 1,
+      "check": "node -v",
+      "minVersion": "20",
+      "guide": "装 Node 20 或更高版本（nvm install 20 / brew install node / nodejs.org），装完重跑 preflight。\nAI 不代装：会改动 shell 环境和全局 PATH。"
+    },
+
+    "tapd-credentials": {
+      "tier": "manual",
+      "kind": "env",
+      "label": "TAPD 应用凭据",
+      "order": 2,
+      "check": ["TAPD_CLIENT_ID", "TAPD_CLIENT_SECRET"],
+      "guide": "在 TAPD 开放平台创建应用，拿到 client_id / client_secret，然后写入凭据文件：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\nAI 不代做：这是长期有效的密钥，只能由你从控制台取得。\n⚠ 不要把值贴进对话，直接写文件。",
+      "approval": "创建应用后还要单独申请 API 权限并授权到具体项目，通常需要 TAPD 管理员审批（1-2 天）",
+      "docs": "https://open.tapd.cn/document/api-doc/API%E6%96%87%E6%A1%A3/%E4%BD%BF%E7%94%A8%E5%BF%85%E8%AF%BB.html"
+    },
+
+    "tapd-workspace-id": {
+      "tier": "manual",
+      "kind": "env",
+      "label": "目标项目 ID",
+      "order": 3,
+      "check": ["TAPD_WORKSPACE_ID"],
+      "guide": "从 TAPD 项目 URL 里取数字段，例如 https://www.tapd.cn/tapd_fe/53165807/... 里的 53165807，写入凭据文件：\n  TAPD_WORKSPACE_ID=53165807\nAI 不代做：只有你知道要操作哪个项目。"
+    },
+
+    "tapd-default-owner": {
+      "tier": "manual",
+      "kind": "env",
+      "label": "默认处理人字段（写操作必需）",
+      "order": 4,
+      "check": ["TAPD_DEFAULT_OWNER"],
+      "guide": "必须是 TAPD 返回的完整账号字符串，不是英文后缀。就绪后可以用这条查：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n取 UserWorkspace.user 的精确值写入凭据文件：\n  TAPD_DEFAULT_OWNER=张三zhangsan01\nAI 可以帮你查，但由你确认写哪个值。"
+    },
+
+    "tapd-token": {
+      "tier": "manual",
+      "kind": "command",
+      "label": "凭据能换到 access token",
+      "dependsOn": ["node", "tapd-credentials"],
+      "order": 5,
+      "volatile": true,
+      "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" token-check --env-file \"$ENV_FILE\"",
+      "timeoutMs": 60000,
+      "guide": "如果这一步失败，通常是 client_id/client_secret 写错或已被轮换。回 TAPD 开放平台核对后更新凭据文件。\n检查命令只打印 has_access_token: true，不会输出 token 本身。"
+    },
+
+    "tapd-workspace-auth": {
+      "tier": "manual",
+      "kind": "command",
+      "label": "应用已被授权到该项目",
+      "dependsOn": ["tapd-token", "tapd-workspace-id"],
+      "order": 6,
+      "volatile": true,
+      "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" workspace --env-file \"$ENV_FILE\"",
+      "timeoutMs": 60000,
+      "guide": "报 scope limited 说明凭据本身有效，但应用没有这个项目的 API 权限。\n需要 TAPD 管理员在开放平台把应用授权到该项目，并勾选需要的接口权限。\nAI 不代做：这是管理员后台操作。\n注意：写权限无法只读检查出来，第一次写入被拒时才会暴露——如果只需要读，read 能力已经可用。",
+      "approval": "项目授权由 TAPD 管理员操作，通常 1-2 天",
+      "docs": "https://open.tapd.cn/document/api-doc/API%E6%96%87%E6%A1%A3/%E6%8E%88%E6%9D%83%E5%87%AD%E8%AF%81/%E9%A1%B9%E7%9B%AE%E6%80%81.html"
+    }
+  }
+}
