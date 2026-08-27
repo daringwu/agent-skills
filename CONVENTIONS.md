@@ -49,7 +49,7 @@
 ### 口径层的两种形态
 
 ```
-skills/<name>/policies/
+skills/<scope>/<name>/policies/
 ├── policy.json          # 量化、可校验、可被脚本读取
 ├── <topic>.md           # 需要判断、无法用一个数字表达
 └── shared/<id>.md       # 从 policies/shared/ 同步的跨 skill 口径
@@ -82,10 +82,21 @@ skills/<name>/policies/
 
 ## 目录结构
 
+顶层按 **scope** 分，判断标准是「换一家公司还能用吗」：
+
+| scope | 内容 | 说明 |
+|---|---|---|
+| `skills/gaotu/` | 依赖内部 API、内网域名、需企业审批的凭据 | 换环境跑不通 |
+| `skills/personal/` | 通用 skill | 任何机器可用 |
+
+scope 只影响**仓库布局和安装筛选**，不影响运行时：
+- 配置目录是 `~/.config/agent-skills/<skill-name>/`，key 只用 `requirements.json` 的 `name`，**不含 scope**。所以一个 skill 在 scope 之间移动不会丢凭据。
+- 安装后是平铺的 `<target>/<name>`（各工具不认嵌套），因此**跨 scope 不能有同名 skill**，`install.sh` 会检查。
+
 skill 内（进 git，无密）：
 
 ```
-skills/<name>/
+skills/<scope>/<name>/
 ├── SKILL.md                    # 第一节是门禁规则
 ├── requirements.json           # 唯一事实源，零依赖可解析
 ├── policies/                   # 口径层
@@ -150,15 +161,15 @@ skills/<name>/
 
 ## 加一个新 skill
 
-1. `mkdir -p skills/<name>/{scripts/checks,references,policies}`，写 `SKILL.md` + `requirements.json` + `policies/policy.json`
+1. 选 scope（`gaotu` 还是 `personal`），`mkdir -p skills/<scope>/<name>/{scripts/checks,references,policies}`，写 `SKILL.md` + `requirements.json` + `policies/policy.json`
 2. SKILL.md 第一节复制现有 skill 的门禁节，把 `{NAME}` 换掉
-3. `./tools/sync-core.sh` 把 preflight/setup 同步进去
-4. `node skills/<name>/scripts/preflight.mjs --explain` 检查渲染出来的说明是否准确
+3. `./tools/sync-core.sh` 把 preflight/setup 与声明的共享口径同步进去
+4. `node skills/<scope>/<name>/scripts/preflight.mjs --explain` 检查渲染出来的说明是否准确
 5. `./tools/policy-todo.sh` 确认没有漏掉该定义的口径
 6. 在一台**没配过**的机器（或临时改 `AGENT_SKILLS_HOME` 指向空目录）上跑一次，确认 BLOCKED 时的引导是可执行的
 
 ## 已知取舍
 
-- **preflight/setup 是复制而非共享库。** 因为每个 skill 必须能被单独安装——Codex 的 skill-installer 只拉 `skills/<name>`，一旦 import `../../lib/` 就会在单独安装时断掉。代价是改模板后必须跑 `tools/sync-core.sh`。
+- **preflight/setup 是复制而非共享库。** 因为每个 skill 必须能被单独安装——Codex 的 skill-installer 只拉单个 skill 路径，一旦 import 仓库里的 `lib/` 就会在单独安装时断掉。代价是改模板后必须跑 `tools/sync-core.sh`。
 - **`requirements.json` 是新增的事实源**，可能和 SKILL.md 散文不同步。所以散文里**不重复列举前提**，需要人类可读版本时用 `preflight.mjs --explain` 现渲染。
 - **写权限无法只读检查。** 只能声明"读已就绪"，第一次写入被拒时才会暴露。清单里用 `guide` 写明这一点，不要假装检查过了。

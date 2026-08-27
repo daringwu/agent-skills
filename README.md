@@ -10,12 +10,14 @@
 
 ```
 skills/
-├── feishu-doc-access/        飞书 Wiki/Docx 内容、元数据、编辑历史
-│   ├── SKILL.md              门禁 + 流程
-│   ├── requirements.json     前提条件（能不能用）
-│   ├── policies/             口径（填什么值）
-│   └── references/           机制（怎么调）
-└── tapd-openapi-workflow/    TAPD 需求/任务/工时读写
+├── gaotu/                    依赖公司内部系统与鉴权，换环境跑不通
+│   ├── feishu-doc-access/    飞书 Wiki/Docx 内容、元数据、编辑历史
+│   │   ├── SKILL.md          门禁 + 流程
+│   │   ├── requirements.json 前提条件（能不能用）
+│   │   ├── policies/         口径（填什么值）
+│   │   └── references/       机制（怎么调）
+│   └── tapd-openapi-workflow/  TAPD 需求/任务/工时读写
+└── personal/                 通用 skill，不依赖任何公司内部系统
 policies/shared/              跨 skill 口径母版（工作归因）
 tools/
 ├── templates/                preflight.mjs / setup.mjs 的母版
@@ -45,21 +47,35 @@ install.sh                    装到各工具的 skills 目录
 git clone <this-repo> ~/Documents/project/agent-skills
 cd ~/Documents/project/agent-skills
 
-./install.sh                  # 软链到已存在的 ~/.codex/skills 和 ~/.claude/skills
-./install.sh --codex          # 只装 Codex
-./install.sh --claude         # 只装 Claude Code
-./install.sh --dir <path>     # 其他工具
-./install.sh --copy           # 拷贝而非软链
+./install.sh                     # 软链所有 skill 到已存在的 ~/.codex/skills 和 ~/.claude/skills
+./install.sh --scope personal    # 只装通用 skill（个人机器用这个）
+./install.sh --scope gaotu       # 只装依赖公司内部系统的
+./install.sh --codex             # 只装 Codex
+./install.sh --claude            # 只装 Claude Code
+./install.sh --dir <path>        # 其他工具
+./install.sh --copy              # 拷贝而非软链
+./install.sh --only <skill-name> # 只装某一个
 ```
 
 默认用**软链**：`git pull` 之后所有工具同步生效，不用重装。已存在的同名目录会先备份成 `<name>.bak.<pid>`。
+
+**仓库里按 scope 分目录，安装后是平铺的**（`<target>/<name>`）—— 各工具直接读 skills 目录下一层，不认嵌套。所以跨 scope 不能有同名 skill，`install.sh` 会检查并拒绝。
+
+## 两个 scope
+
+| scope | 判断标准 | 装在哪 |
+|---|---|---|
+| `gaotu/` | 依赖内部 API、内网域名、需企业审批的凭据 | 公司机器 |
+| `personal/` | 换一家公司还能用 | 所有机器 |
+
+`gaotu/` 的 skill 在别的环境装了也跑不通（preflight 直接 BLOCKED），所以个人机器上用 `--scope personal`。
 
 Codex 也可以用它自带的 installer 从 GitHub 直接装（支持私有仓库）：
 
 ```bash
 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
   --repo <owner>/agent-skills \
-  --path skills/feishu-doc-access skills/tapd-openapi-workflow
+  --path skills/gaotu/feishu-doc-access skills/gaotu/tapd-openapi-workflow
 ```
 
 ## 装完之后：先跑 preflight

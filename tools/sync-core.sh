@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
-# Sync shared files into every skill:
-#   - tools/templates/{preflight,setup}.mjs  -> skills/<name>/scripts/
-#   - policies/shared/<id>.md               -> skills/<name>/policies/shared/
+# Sync shared files into every skill under skills/<scope>/<name>/:
+#   - tools/templates/{preflight,setup}.mjs  -> scripts/
+#   - policies/shared/<id>.md               -> policies/shared/
 #     (only the ids listed in that skill's policies/policy.json "shared" array)
 #
 # Why copies instead of a shared lib/: each skill must stay independently
-# installable. Codex's skill-installer fetches skills/<name> only, so a skill
+# installable. Codex's skill-installer fetches one skill path only, so a skill
 # that reached outside its own directory would break when installed alone.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-for skill in "$ROOT"/skills/*/; do
-  name="$(basename "$skill")"
-  [ -f "$skill/requirements.json" ] || { echo "skip $name (no requirements.json)"; continue; }
+found=0
+for skill in "$ROOT"/skills/*/*/; do
+  [ -f "$skill/requirements.json" ] || continue
+  found=$((found + 1))
+  rel="${skill#"$ROOT"/skills/}"; rel="${rel%/}"
 
   mkdir -p "$skill/scripts"
   for f in preflight.mjs setup.mjs; do
@@ -33,7 +35,7 @@ for skill in "$ROOT"/skills/*/; do
         [ -n "$id" ] || continue
         src="$ROOT/policies/shared/$id.md"
         if [ ! -f "$src" ]; then
-          echo "  !! $name 声明了 shared policy \"$id\"，但 $src 不存在" >&2
+          echo "  !! $rel 声明了 shared policy \"$id\"，但 $src 不存在" >&2
           exit 1
         fi
         cp "$src" "$skill/policies/shared/$id.md"
@@ -42,5 +44,6 @@ for skill in "$ROOT"/skills/*/; do
     fi
   fi
 
-  echo "synced $name ($synced)"
+  echo "synced $rel ($synced)"
 done
+[ "$found" -gt 0 ] || echo "没找到任何 skill（期望路径 skills/<scope>/<name>/requirements.json）" >&2
