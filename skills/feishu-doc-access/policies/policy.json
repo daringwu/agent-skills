@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "skill": "feishu-doc-access",
+  "updated": "2026-08-27",
+  "shared": ["work-attribution"],
+
+  "_readme": "量化口径的唯一事实源。value 为 null = 尚未定义，必须先问用户，绝不自行假设。判断类口径见同目录 *.md。",
+
+  "rules": {
+    "timezone": {
+      "value": "Asia/Shanghai",
+      "note": "飞书返回的 edit_time 是 UTC，一切面向用户的时间与按日聚合都转成这个时区。",
+      "source": "已确立"
+    },
+
+    "resolveEditorNames": {
+      "value": false,
+      "note": "默认不申请 contact:user:search 去把 editor_ids 解析成姓名，直接保留原始 id。要解析必须先问用户——这个 scope 会扩大通讯录访问面。",
+      "source": "已确立"
+    },
+
+    "outputDir": {
+      "value": "outputs/",
+      "note": "原始 JSON 与按日汇总都存到当前工作区的这个目录，不存进 skill 目录。work/ 放中间产物。",
+      "source": "已确立"
+    },
+
+    "requireInferenceDisclosure": {
+      "value": true,
+      "note": "任何基于推断（而非直接可见历史）的结论必须在产物里标注来源，包括「根据文档快照对比推断」「根据代码提交推断」。",
+      "source": "已确立"
+    },
+
+    "historyPageSize": {
+      "value": 20,
+      "note": "docs +history-list 的分页大小。",
+      "source": "已确立（沿用现有脚本默认值）"
+    },
+
+    "editCountAsWorkEvidence": {
+      "value": "evidence-only",
+      "note": "编辑次数只能当作「做过」的证据，不能换算成工时。允许值：evidence-only。",
+      "source": "已确立"
+    }
+  }
+}

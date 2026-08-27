@@ -11,11 +11,32 @@
 ```
 skills/
 ├── feishu-doc-access/        飞书 Wiki/Docx 内容、元数据、编辑历史
+│   ├── SKILL.md              门禁 + 流程
+│   ├── requirements.json     前提条件（能不能用）
+│   ├── policies/             口径（填什么值）
+│   └── references/           机制（怎么调）
 └── tapd-openapi-workflow/    TAPD 需求/任务/工时读写
+policies/shared/              跨 skill 口径母版（工作归因）
 tools/
 ├── templates/                preflight.mjs / setup.mjs 的母版
-└── sync-core.sh              把母版同步进每个 skill
+├── sync-core.sh              把母版与共享口径同步进每个 skill
+└── policy-todo.sh            列出所有尚未定义的口径
 install.sh                    装到各工具的 skills 目录
+```
+
+## 三层内容
+
+| 层 | 位置 | 变化来源 |
+|---|---|---|
+| 门禁 | `SKILL.md` 第一节 | 本仓库约定 |
+| 机制 | `references/*.md` | 外部系统改 API |
+| 口径 | `policies/` | 你和团队改约定 |
+
+口径分量化（`policies/policy.json`，可被脚本读取）和判断类（`policies/*.md`）。
+`policy.json` 里 `value: null` 表示**尚未定义，必须先问用户**，不是"用默认值"。
+
+```bash
+./tools/policy-todo.sh    # 看还有哪些口径没定义
 ```
 
 ## 安装
@@ -86,7 +107,7 @@ node scripts/setup.mjs --yes-assisted             # 同意执行有全局副作�
 
 ## 改了 preflight/setup 之后
 
-母版在 `tools/templates/`，skill 里的是同步副本：
+母版在 `tools/templates/`（脚本）和 `policies/shared/`（跨 skill 口径），skill 里的是同步副本：
 
 ```bash
 ./tools/sync-core.sh

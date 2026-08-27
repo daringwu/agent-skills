@@ -60,27 +60,16 @@ Use these notes as a quick map. If anything is uncertain or current behavior mat
 - For multi-day work, write one timesheet row per date rather than one total row.
 - To rebalance daily hours, delete and recreate affected timesheet rows, then re-read totals.
 
-## Team Conventions From The 48h Workflow
+## 团队口径不在这里
 
-- Frontend task names start with `【FE】`.
-- Do not populate priority columns unless asked.
-- Finished tasks:
-  - `status=done`
-  - `begin`
-  - `due`; if finished in one day, `due=begin`; if multi-day, `due` is the last work date
-  - actual hours from timesheets
-  - estimated `effort` equal to completed hours if the user requests that convention
-- In-progress tasks:
-  - `status=progressing`
-  - `begin`
-  - actual hours through timesheets
-  - usually no `due`
-  - usually `effort=0` unless estimates are required
-- Not-started or blocked tasks:
-  - `status=open`
-  - no timesheets
-  - `effort=0`
-  - no `begin/due` unless the user provides schedule dates
+本文件只记录 TAPD 的**机制**：endpoint、字段语义、限制、报错。
+
+团队/个人**口径**（任务名前缀、哪些字段留空、工时上限、状态字段填法）已移到 `policies/`：
+- `policies/policy.json` —— 量化口径，唯一事实源
+- `policies/hours.md` —— 工时口径
+- `policies/fields-and-naming.md` —— 命名与字段留空口径
+
+机制变化来自 TAPD 改 API；口径变化来自团队改约定。两者独立演进，所以分开放。
 
 ## Error Hints
 

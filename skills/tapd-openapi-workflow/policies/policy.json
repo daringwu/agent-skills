@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "skill": "tapd-openapi-workflow",
+  "updated": "2026-08-27",
+  "shared": ["work-attribution"],
+
+  "_readme": "量化口径的唯一事实源。value 为 null = 尚未定义，必须先问用户，绝不自行假设或沿用示例值。判断类口径见同目录 *.md。",
+
+  "rules": {
+    "taskNamePrefix": {
+      "value": { "frontend": "【FE】" },
+      "note": "前端任务名统一前缀，用于按 prefix 过滤统计（tapd_tool.mjs daily-hours --prefix）。",
+      "source": "已确立"
+    },
+
+    "writePriority": {
+      "value": false,
+      "note": "不写 priority / priority_label，除非用户明确要求填优先级。",
+      "source": "已确立"
+    },
+
+    "statusFields": {
+      "value": {
+        "done":        { "begin": "required", "due": "required", "effort": "see:effortEqualsCompleted", "timesheets": "required" },
+        "progressing": { "begin": "required", "due": "omit",     "effort": 0,                          "timesheets": "required" },
+        "open":        { "begin": "omit",     "due": "omit",     "effort": 0,                          "timesheets": "none" }
+      },
+      "note": "三种任务状态各自该填哪些字段。open 的 begin/due 仅在用户给出排期时才填。",
+      "source": "已确立"
+    },
+
+    "dueDateRule": {
+      "value": { "singleDay": "equal-to-begin", "multiDay": "last-work-date" },
+      "note": "当天完成的任务 due=begin；跨天的任务 due 取最后一个有工时的日期。",
+      "source": "已确立"
+    },
+
+    "timesheetGranularity": {
+      "value": "one-row-per-task-per-day",
+      "note": "TAPD 对同一任务同一天只接受一条 timesheet（机制限制）。多个同日子任务合并进一个任务时，把该日聚合成一条 memo。",
+      "source": "已确立"
+    },
+
+    "dailyHoursCap": {
+      "value": null,
+      "note": "单日工时上限。重排工时（避免某天过载）时，只移动导致超过此值的行。",
+      "todo": "定一个数字。原文只写了 exceed the target 但没定义 target。要问：上限是 8？还是按人日 6？超过时是移到前一天还是后一天？"
+    },
+
+    "minTimesheetIncrement": {
+      "value": null,
+      "note": "工时最小记账粒度，写入 timespent 前按此取整。",
+      "todo": "定一个数字（0.5h / 1h / 不取整）。以及取整方向：四舍五入 / 向上 / 向下。"
+    },
+
+    "effortEqualsCompleted": {
+      "value": null,
+      "note": "已完成任务的估算 effort 是否等于实际完成工时。",
+      "todo": "原文写的是 usually ... if that is the team's convention —— 也就是没定。要问：默认相等，还是默认留 0，还是每次问？"
+    },
+
+    "allowWeekendHours": {
+      "value": false,
+      "note": "默认不把工时排到周末；用户明确允许时才可以。",
+      "source": "已确立（默认值来自原文 avoid weekends unless the user allows them）"
+    }
+  }
+}

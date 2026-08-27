@@ -20,7 +20,11 @@ description: Access, read, export, and audit Feishu/Lark Docs, Wiki pages, Docx 
 7. 凭据只写入 `~/.config/agent-skills/feishu-doc-access/env`（chmod 600）。不要回显值、不要写进仓库、不要贴进对话。
 8. 要给用户看完整前提说明（不做任何检查）：`node scripts/preflight.mjs --explain`。
 
-前提条件的唯一事实源是 `requirements.json`；本文档不重复列举，以免不同步。
+9. 涉及「填什么值」的判断前，先读 `policies/policy.json`。**其中 `value` 为 `null` 的项表示口径尚未定义——
+   必须先问用户，绝不自行假设、绝不沿用 note 里的示例值。** 判断类口径读 `policies/*.md`。
+
+前提条件的唯一事实源是 `requirements.json`，量化口径的唯一事实源是 `policies/policy.json`。
+本文档两者都不重复列举，以免不同步。
 
 Use this skill for Feishu/Lark document work: reading wiki/docx content, resolving wiki tokens, fetching metadata, pulling edit history, downloading/fetching revision snapshots, and explaining authorization safety.
 
@@ -205,14 +209,18 @@ Common scopes encountered:
 - `drive:drive:version:readonly` / `drive:drive:version`: Drive saved file versions, not doc edit history
 - `contact:user:search`: map editor ids to user display names; ask before requesting this because it expands data access
 
-## Output Practices
+## 输出口径
 
-When summarizing work from Feishu history:
-- Convert UTC `edit_time` to the user's relevant timezone. In this workspace, use Asia/Shanghai unless the user specifies otherwise.
-- Preserve raw `editor_ids` if names cannot be resolved without extra contact permissions.
-- Separate “edit history count” from “work hours”; edit count is evidence, not time.
-- Save raw history JSON and daily summaries in `outputs/` for user-facing deliverables.
-- State when a table is based on visible history plus inference from document snapshots or code diffs.
+时区、是否解析编辑者姓名、产物目录、推断标注要求 —— 全部读 `policies/policy.json`。
+需要判断的部分（编辑次数为何不能当工时、推断怎么标注、姓名解析的边界）读 `policies/reporting.md`。
+
+不在这里重复口径值，会不同步。
+
+## 两层结构
+
+- **机制**（怎么调）：`references/apis.md`（命令、endpoint、报错）、`references/auth-and-security.md`（token 生命周期、scope 安全表）。
+- **口径**（怎么输出）：`policies/policy.json` + `policies/reporting.md`，
+  以及跨 skill 的 `policies/shared/work-attribution.md`（工作归因）。
 
 ## References
 

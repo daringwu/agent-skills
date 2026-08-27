@@ -32,6 +32,54 @@
 
 好处很实际：只想做只读操作时，不该被"写操作缺 secret"拦住。
 
+## 三层内容，不要混
+
+一个 skill 里的文字有三种，变化速度和变化来源都不同，所以分开放：
+
+| 层 | 位置 | 内容 | 谁驱动变化 |
+|---|---|---|---|
+| **门禁** | `SKILL.md` 第一节 | 用之前必须做什么、退出码怎么反应 | 本约定 |
+| **机制** | `references/*.md` | endpoint、命令、字段语义、报错、限制 | 外部系统改 API |
+| **口径** | `policies/` | 填什么值、什么算一个任务、上限是多少 | 你和团队改约定 |
+
+判断依据：**「如果 TAPD 明天改了 API，这句话要改吗？」要改的是机制；不改但可能因为团队开会而改的，是口径。**
+
+混在一起的代价很具体：改一次工时上限要去动 API 文档，而 API 文档是会被整段替换的。
+
+### 口径层的两种形态
+
+```
+skills/<name>/policies/
+├── policy.json          # 量化、可校验、可被脚本读取
+├── <topic>.md           # 需要判断、无法用一个数字表达
+└── shared/<id>.md       # 从 policies/shared/ 同步的跨 skill 口径
+```
+
+`policy.json` 每条规则的形状：
+
+```jsonc
+"dailyHoursCap": {
+  "value": null,                       // null = 尚未定义
+  "note": "单日工时上限……",             // 用途
+  "todo": "定一个数字。要问：上限是 8？…"  // 未定义时要问什么
+}
+```
+
+**`value: null` 的语义是「必须先问用户」**，不是「用默认值」。这是处理"先拆出来，后完善"的诚实做法——把未定义显式记下来，而不是随手填一个看起来合理的数字。已定义的规则用 `source` 说明来源。
+
+`tools/policy-todo.sh` 列出所有待定义项。
+
+### 跨 skill 口径
+
+工作归因（什么算一个任务、怎么从代码仓库归纳、工时怎么估）不属于任何单个工具——换掉 TAPD 或换掉飞书它都不变。母版放仓库根 `policies/shared/`，各 skill 在 `policies/policy.json` 的 `shared` 数组里声明需要哪些，`tools/sync-core.sh` 同步进去。
+
+同步而非引用的原因和 preflight 一样：skill 必须能被单独安装。
+
+### 硬规则
+
+- SKILL.md 和 references **不得出现口径字面值**（包括命令示例里的）。示例用 `<policy:ruleName>` 占位。
+- 口径不在散文里重复列举，需要人类可读版本时现读 `policies/`。
+
 ## 目录结构
 
 skill 内（进 git，无密）：
@@ -40,12 +88,16 @@ skill 内（进 git，无密）：
 skills/<name>/
 ├── SKILL.md                    # 第一节是门禁规则
 ├── requirements.json           # 唯一事实源，零依赖可解析
+├── policies/                   # 口径层
+│   ├── policy.json             # 量化口径，唯一事实源
+│   ├── <topic>.md              # 判断类口径
+│   └── shared/*.md             # 由 sync-core.sh 从 policies/shared/ 同步
 ├── scripts/
 │   ├── preflight.mjs           # 由 tools/sync-core.sh 同步，勿直接改
 │   ├── setup.mjs               # 同上
 │   ├── checks/*.mjs            # 复杂检查放脚本，不塞进 JSON 字符串
 │   └── <业务脚本>
-└── references/*.md
+└── references/*.md             # 机制层
 ```
 
 机器内（不进 git，跨工具共享）：
@@ -98,11 +150,12 @@ skills/<name>/
 
 ## 加一个新 skill
 
-1. `mkdir -p skills/<name>/{scripts/checks,references}`，写 `SKILL.md` + `requirements.json`
+1. `mkdir -p skills/<name>/{scripts/checks,references,policies}`，写 `SKILL.md` + `requirements.json` + `policies/policy.json`
 2. SKILL.md 第一节复制现有 skill 的门禁节，把 `{NAME}` 换掉
 3. `./tools/sync-core.sh` 把 preflight/setup 同步进去
 4. `node skills/<name>/scripts/preflight.mjs --explain` 检查渲染出来的说明是否准确
-5. 在一台**没配过**的机器（或临时改 `AGENT_SKILLS_HOME` 指向空目录）上跑一次，确认 BLOCKED 时的引导是可执行的
+5. `./tools/policy-todo.sh` 确认没有漏掉该定义的口径
+6. 在一台**没配过**的机器（或临时改 `AGENT_SKILLS_HOME` 指向空目录）上跑一次，确认 BLOCKED 时的引导是可执行的
 
 ## 已知取舍
 

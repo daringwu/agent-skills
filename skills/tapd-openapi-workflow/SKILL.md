@@ -20,7 +20,11 @@ description: Connect to TAPD Open API and operate TAPD projects remotely. Use wh
 7. 凭据只写入 `~/.config/agent-skills/tapd-openapi-workflow/env`（chmod 600）。不要回显值、不要写进仓库、不要贴进对话。
 8. 要给用户看完整前提说明（不做任何检查）：`node scripts/preflight.mjs --explain`。
 
-前提条件的唯一事实源是 `requirements.json`；本文档不重复列举，以免不同步。
+9. 涉及「填什么值」的判断前，先读 `policies/policy.json`。**其中 `value` 为 `null` 的项表示口径尚未定义——
+   必须先问用户，绝不自行假设、绝不沿用 note 里的示例值。** 判断类口径读 `policies/*.md`。
+
+前提条件的唯一事实源是 `requirements.json`，量化口径的唯一事实源是 `policies/policy.json`。
+本文档两者都不重复列举，以免不同步。
 
 Use this skill for TAPD Open API work: connecting an app, reading the official docs, creating tasks, moving tasks between stories/Chores, writing actual hours with timesheets, and verifying iteration totals.
 
@@ -42,7 +46,6 @@ TAPD_DEFAULT_OWNER=武佳宁wujianing02
 
 - Use project URLs to infer `workspace_id`; in `https://www.tapd.cn/tapd_fe/53165807/...`, the project ID is `53165807`.
 - For current-user updates, pass `current_user` as the exact TAPD user field, often the full display/account string returned by `workspaces/users`, not just an English suffix.
-- Avoid writing `priority` or `priority_label` unless the user explicitly wants priority populated.
 
 ## Workflow
 
@@ -64,17 +67,17 @@ TAPD_DEFAULT_OWNER=武佳宁wujianing02
    - Create a Chores container as a story using `POST /stories` and the project's Chores `workitem_type_id`; find types with `GET /workitem_types`.
 
 4. **Handle hours correctly**
-   - `effort` is estimated effort.
-   - Actual/completed hours should be written through `POST /timesheets`.
-   - Finished tasks: set `status=done`; usually set `effort` equal to actual completed hours if that is the team's TAPD convention.
-   - In-progress tasks: write actual hours via timesheets; keep `effort` at `0` unless the user asks for estimates.
-   - Not started/blocked tasks: create as `open`, no timesheets, `effort=0`.
-   - TAPD usually allows only one timesheet row per task per day. For a multi-day task, write one row per date; if several subtasks on the same date are merged into one task, aggregate that date into one timesheet memo.
+   - Mechanism: `effort` is estimated effort; actual hours go through `POST /timesheets`;
+     `effort_completed` is computed by TAPD and must not be written directly.
+   - Mechanism: TAPD accepts only one timesheet row per task per day.
+   - **每个字段填什么值由口径决定，不在这里定义。** 状态→字段对应表、`effort` 是否等于实际工时、
+     最小记账粒度，全部读 `policies/policy.json`；判断部分读 `policies/hours.md`。
 
 5. **Verify after every write**
    - Re-read tasks and timesheets from TAPD.
    - Check task count, total actual hours, status counts, missing due dates, priority values, and daily totals.
-   - If the user asks to avoid overloading days, summarize actual hours by `spentdate`; move only rows that make a day exceed the target and avoid weekends unless the user allows them.
+   - 重排每日工时的口径（上限、是否可排周末、只移超限行）见 `policies/hours.md` 与
+     `policies/policy.json` 的 `dailyHoursCap` / `allowWeekendHours`。
 
 ## Reusable Script
 
@@ -86,13 +89,20 @@ Examples:
 node <skill 目录>/scripts/tapd_tool.mjs token-check --env-file ~/.config/agent-skills/tapd-openapi-workflow/env
 node <skill 目录>/scripts/tapd_tool.mjs workspace --env-file ~/.config/agent-skills/tapd-openapi-workflow/env
 node <skill 目录>/scripts/tapd_tool.mjs iteration --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652
-node <skill 目录>/scripts/tapd_tool.mjs daily-hours --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652 --prefix '【FE】'
-node <skill 目录>/scripts/tapd_tool.mjs create-task --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652 --story-id 1153165807001389831 --name '【FE】示例任务' --status open
+node <skill 目录>/scripts/tapd_tool.mjs daily-hours --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652 --prefix '<policy:taskNamePrefix.frontend>'
+node <skill 目录>/scripts/tapd_tool.mjs create-task --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id 1153165807001014652 --story-id 1153165807001389831 --name '<policy:taskNamePrefix.frontend>示例任务' --status open
 node <skill 目录>/scripts/tapd_tool.mjs add-timesheet --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --task-id 1153165807001390153 --spentdate 2026-08-16 --timespent 2 --memo '报告展示收尾'
 ```
 
+示例里的 `<policy:...>` 是占位符，实际值取 `policies/policy.json`，不要在本文档里写死。
+
 Prefer the script for reads, daily-hour audits, and simple writes. For complex migrations, write a one-off script that follows the same patterns: idempotent reads, soft-delete rather than hard-delete, one TAPD row per task/date timesheet, and final verification.
 
-## References
+## 两层结构
 
-- Read `references/tapd-api-notes.md` when you need endpoint names, common field behavior, status conventions, known errors, or official doc URLs.
+- **机制**（怎么调）：`references/tapd-api-notes.md` —— endpoint、字段语义、限制、报错。
+- **口径**（填什么）：`policies/` —— `policy.json` 是量化口径的唯一事实源，
+  `hours.md` / `fields-and-naming.md` 是需要判断的部分，
+  `policies/shared/work-attribution.md` 是跨 skill 的工作归因口径。
+
+不要在 SKILL.md 或 references 里重复口径值，会不同步。
