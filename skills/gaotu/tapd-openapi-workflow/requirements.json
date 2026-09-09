@@ -13,7 +13,7 @@
     "write": {
       "label": "创建/更新任务与写入工时",
       "description": "写操作：建任务、改状态、写 timesheet、重排每日工时。需要 owner 字段才能正确归属。",
-      "requires": ["node", "tapd-credentials", "tapd-workspace-id", "tapd-token", "tapd-workspace-auth", "tapd-default-owner"]
+      "requires": ["node", "tapd-credentials", "tapd-workspace-id", "tapd-token", "tapd-workspace-auth", "tapd-default-owner", "tapd-owner-valid"]
     }
   },
 
@@ -56,7 +56,7 @@
       "label": "默认处理人字段（写操作必需）",
       "order": 4,
       "check": ["TAPD_DEFAULT_OWNER"],
-      "quickGuide": "用途：仅写操作必需；如果当前只测试读取，可以先不填。\n获取：先正确配置前三项并通过项目鉴权，再运行：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n字段要求：在返回列表中找到本人，复制 UserWorkspace.user（输出 JSON 的 user 字段）完整原值；不要填 name 字段，也不要凭姓名或英文账号猜。值可能形如 张三zhangsan01，也可能只有中文，以接口实际返回为准。\n配置：在上面的 env 文件加入：\n  TAPD_DEFAULT_OWNER=<UserWorkspace.user 的完整原值>",
+      "quickGuide": "用途：仅写操作必需；如果当前只测试读取，可以先不填。\n获取：先正确配置前三项并通过项目鉴权，再运行：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\" --search <你的姓名>\n字段要求：在匹配结果中找到本人，复制 UserWorkspace.user（输出 JSON 的 user 字段）完整原值；不要填 name 字段，也不要凭姓名或英文账号猜。值可能形如 张三zhangsan01，也可能只有中文，以接口实际返回为准。\n配置：在上面的 env 文件加入：\n  TAPD_DEFAULT_OWNER=<UserWorkspace.user 的完整原值>",
       "guide": "必须是 TAPD 返回的完整账号字符串，不是英文后缀。就绪后可以用这条查：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n取 UserWorkspace.user 的精确值写入凭据文件：\n  TAPD_DEFAULT_OWNER=张三zhangsan01\nAI 可以帮你查，但由你确认写哪个值。"
     },
 
@@ -70,6 +70,19 @@
       "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" token-check --env-file \"$ENV_FILE\"",
       "timeoutMs": 60000,
       "guide": "如果这一步失败，通常是 client_id/client_secret 写错或已被轮换。回 TAPD 开放平台核对后更新凭据文件。\n检查命令只打印 has_access_token: true，不会输出 token 本身。"
+    },
+
+    "tapd-owner-valid": {
+      "tier": "manual",
+      "kind": "command",
+      "label": "默认处理人是当前项目的有效成员字段",
+      "dependsOn": ["tapd-token", "tapd-workspace-auth", "tapd-default-owner"],
+      "order": 7,
+      "volatile": true,
+      "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" validate-owner --env-file \"$ENV_FILE\"",
+      "timeoutMs": 60000,
+      "quickGuide": "当前 TAPD_DEFAULT_OWNER 不是项目成员接口返回的精确 user 值。先运行：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\" --search <你的姓名>\n从匹配结果复制 user 字段的完整原值写回 env；不要复制 name，也不要自行拼接。",
+      "guide": "通过 workspaces/users 校验 TAPD_DEFAULT_OWNER 必须精确匹配当前项目的 UserWorkspace.user。"
     },
 
     "tapd-workspace-auth": {

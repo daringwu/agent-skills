@@ -31,7 +31,12 @@ function loadEnv(file) {
     if (!trimmed || trimmed.startsWith("#")) continue;
     const idx = trimmed.indexOf("=");
     if (idx < 0) continue;
-    out[trimmed.slice(0, idx)] = trimmed.slice(idx + 1);
+    const key = trimmed.slice(0, idx).trim();
+    let value = trimmed.slice(idx + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    out[key] = value;
   }
   return out;
 }
@@ -68,6 +73,41 @@ function redact(value) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const COMMANDS = new Set([
+  "token-check", "workspace", "iteration", "users", "validate-owner", "workitem-types",
+  "list-tasks", "daily-hours", "create-task", "update-task", "add-timesheet",
+]);
+const TASK_STATUSES = new Set(["open", "progressing", "done", "deleted"]);
+
+function validDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+}
+
+function validateArgs(command, args, env, workspaceId) {
+  if (workspaceId && !/^\d+$/.test(String(workspaceId))) throw new Error("workspace-id must contain digits only");
+  for (const key of ["begin", "due", "spentdate"]) {
+    if (args[key] && !validDate(args[key])) throw new Error(`--${key} must be a real date in YYYY-MM-DD format`);
+  }
+  if (args.begin && args.due && args.due < args.begin) throw new Error("--due must not be earlier than --begin");
+  if (args.status && !TASK_STATUSES.has(args.status)) {
+    throw new Error(`--status must be one of: ${[...TASK_STATUSES].join(", ")}`);
+  }
+  if (args.timespent !== undefined) {
+    const value = Number(args.timespent);
+    if (!Number.isFinite(value) || value <= 0) throw new Error("--timespent must be a positive number");
+  }
+  if (command === "users" && !args.search && !args["exact-user"] && !args.all) {
+    throw new Error("users needs --search <姓名>, --exact-user <完整user>, or explicit --all");
+  }
+  if (command === "validate-owner") required({ TAPD_DEFAULT_OWNER: env.TAPD_DEFAULT_OWNER }, ["TAPD_DEFAULT_OWNER"]);
+  if (command === "update-task") {
+    const fields = ["name", "story-id", "iteration-id", "status", "owner", "begin", "due", "effort", "priority", "priority-label", "description"];
+    if (!fields.some((key) => args[key] !== undefined)) throw new Error("update-task needs at least one field to change");
+  }
 }
 
 async function getToken(env) {
@@ -150,9 +190,12 @@ async function main() {
   const workspaceId = args["workspace-id"] || env.TAPD_WORKSPACE_ID;
 
   if (!command || command === "help") {
-    console.log("Commands: token-check, workspace, iteration, users, workitem-types, list-tasks, daily-hours, create-task, update-task, add-timesheet");
+    console.log(`Commands: ${[...COMMANDS].join(", ")}`);
     return;
   }
+
+  if (!COMMANDS.has(command)) throw new Error(`unknown command: ${command}`);
+  validateArgs(command, args, env, workspaceId);
 
   const accessToken = await getToken(env);
 
@@ -178,9 +221,35 @@ async function main() {
 
   if (command === "users") {
     required({ TAPD_WORKSPACE_ID: workspaceId }, ["TAPD_WORKSPACE_ID"]);
-    const json = await getJson(accessToken, "/workspaces/users", { workspace_id: workspaceId, limit: 200 });
+    const json = await getJson(accessToken, "/workspaces/users", {
+      workspace_id: workspaceId,
+      user: args["exact-user"],
+    });
+    let rows = (json.data || []).map((row) => row.UserWorkspace).filter(Boolean);
+    if (args["exact-user"]) rows = rows.filter((u) => u.user === args["exact-user"]);
+    else if (args.search) {
+      const query = String(args.search).toLowerCase();
+      rows = rows.filter((u) => [u.user, u.name].some((v) => String(v ?? "").toLowerCase().includes(query)));
+    }
+    console.log(JSON.stringify(rows.map((u) => ({
+      user: u.user,
+      name: u.name,
+      ...(args["include-email"] ? { email: u.email } : {}),
+      status: u.status,
+    })), null, 2));
+    return;
+  }
+
+  if (command === "validate-owner") {
+    required({ TAPD_WORKSPACE_ID: workspaceId }, ["TAPD_WORKSPACE_ID"]);
+    const json = await getJson(accessToken, "/workspaces/users", {
+      workspace_id: workspaceId,
+      user: env.TAPD_DEFAULT_OWNER,
+    });
     const rows = (json.data || []).map((row) => row.UserWorkspace).filter(Boolean);
-    console.log(JSON.stringify(rows.map((u) => ({ user: u.user, name: u.name, email: u.email, status: u.status })), null, 2));
+    const match = rows.find((u) => u.user === env.TAPD_DEFAULT_OWNER);
+    if (!match) throw new Error("TAPD_DEFAULT_OWNER does not exactly match any UserWorkspace.user in this project; run users --search <姓名> and copy the user field");
+    console.log(JSON.stringify({ valid_owner: true, user: match.user, status: match.status }, null, 2));
     return;
   }
 
@@ -286,7 +355,6 @@ async function main() {
     return;
   }
 
-  throw new Error(`unknown command: ${command}`);
 }
 
 main().catch((error) => {

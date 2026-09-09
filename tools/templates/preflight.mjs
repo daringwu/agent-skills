@@ -265,7 +265,8 @@ function evaluate(manifest, opts) {
     if (visited.has(id)) return;
     if (stack.includes(id)) die(`dependsOn cycle: ${[...stack, id].join(" -> ")}`);
     for (const dep of manifest.requirements[id].dependsOn ?? []) {
-      if (needed.has(dep)) visit(dep, [...stack, id]);
+      needed.add(dep);
+      visit(dep, [...stack, id]);
     }
     visited.add(id);
     order.push(id);
