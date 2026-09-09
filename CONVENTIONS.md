@@ -71,7 +71,11 @@ skills/<scope>/<name>/policies/
 
 ### 跨 skill 口径
 
-工作归因（什么算一个任务、怎么从代码仓库归纳、工时怎么估）不属于任何单个工具——换掉 TAPD 或换掉飞书它都不变。母版放仓库根 `policies/shared/`，各 skill 在 `policies/policy.json` 的 `shared` 数组里声明需要哪些，`tools/sync-core.sh` 同步进去。
+判断标准是「这个口径是被某个工具的字段需求造出来的吗」。
+
+反例：工时。它看起来像通用概念，其实是 TAPD 的字段需求造出来的——不用 TAPD 就没人需要估工时。放进共享层等于把一个工具的记录格式伪装成普适原则。所以工时、任务粒度都留在 `tapd-openapi-workflow/policies/`。
+
+真正共享的是上游那段：**从痕迹（git 提交、文档编辑历史）归纳出「做了哪些事」**——不管下游是填 TAPD、写周报还是述职都要做。母版放仓库根 `policies/shared/`，各 skill 在 `policies/policy.json` 的 `shared` 数组里声明需要哪些，`tools/sync-core.sh` 同步进去。
 
 同步而非引用的原因和 preflight 一样：skill 必须能被单独安装。
 

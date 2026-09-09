@@ -41,6 +41,36 @@
       "source": "已确立"
     },
 
+    "taskGranularity": {
+      "value": null,
+      "note": "活动清单上的多行怎么合并成一个 TAPD 任务行。允许值：by-deliverable / by-pr / by-tapd-story。",
+      "todo": "选一个。按可验收产出（任务少、名字读得懂）/ 按 PR（客观但碎）/ 跟随 TAPD 需求（和产品对得上，但需求粗时工时全堆一条）。"
+    },
+
+    "reworkAttribution": {
+      "value": null,
+      "note": "调研、返工、修自己引入的 bug 算独立任务还是并进原任务。允许值：merge-into-original / separate-task。",
+      "todo": "并进原任务会让任务列表更干净；独立成任务则保留了返工成本的信息。"
+    },
+
+    "nonCodeWork": {
+      "value": null,
+      "note": "评审、联调、答疑、值班这类无代码产出的工作放哪。允许值：chores / regular-task。",
+      "todo": "走 Chores 能保住「技术任务总工时」这个口径不失真；建成普通任务则统计更完整。"
+    },
+
+    "hoursAllocation": {
+      "value": null,
+      "note": "一天的工时怎么分配到多个任务。允许值：total-then-split（先定当天总数再分摊）/ per-task-sum（逐任务估完加总）。",
+      "todo": "per-task-sum 的总数几乎必然超出实际工作时长，然后要回头压缩。total-then-split 更贴近实际但需要先定当天总数。"
+    },
+
+    "sameDaySplit": {
+      "value": null,
+      "note": "同一天做了多个任务时，工时按什么比例分。允许值：even / by-commit-count / ask。",
+      "todo": "依赖 hoursAllocation —— 选了 total-then-split 才需要这条。"
+    },
+
     "dailyHoursCap": {
       "value": null,
       "note": "单日工时上限。重排工时（避免某天过载）时，只移动导致超过此值的行。",

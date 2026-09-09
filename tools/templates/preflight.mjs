@@ -354,14 +354,6 @@ function renderHuman(ev, opts) {
   if (manifest.summary) L.push(`   ${manifest.summary}`);
   L.push("");
 
-  L.push("能力状态");
-  for (const c of capabilities) {
-    const mark = c.ready ? "READY   " : "BLOCKED ";
-    const why = c.ready ? "" : `  ← 缺 ${c.missing.join(", ")}`;
-    L.push(`  ${mark} ${c.id.padEnd(18)} ${c.label}${why}`);
-  }
-  L.push("");
-
   if (!blockers.length) {
     L.push("所有前提条件已满足，可以直接开始。");
     const perms = envFilePerms(p.envFile);
@@ -378,6 +370,19 @@ function renderHuman(ev, opts) {
   const groups = { auto: [], assisted: [], manual: [] };
   for (const id of actionable) groups[manifest.requirements[id].tier].push(id);
 
+  const blockedCapabilities = capabilities.filter((c) => !c.ready).map((c) => c.id);
+  if (blockedCapabilities.length) {
+    L.push(`暂不可用：${blockedCapabilities.join(", ")}`);
+    L.push("");
+  }
+
+  const missingEnv = actionable.some((id) => manifest.requirements[id].kind === "env");
+  if (missingEnv) {
+    L.push("先准备配置文件：");
+    L.push(`  mkdir -p "${p.dir}" && touch "${p.envFile}" && chmod 600 "${p.envFile}" && \${EDITOR:-vi} "${p.envFile}"`);
+    L.push("");
+  }
+
   for (const tier of ["auto", "assisted", "manual"]) {
     const ids = groups[tier];
     if (!ids.length) continue;
@@ -385,32 +390,24 @@ function renderHuman(ev, opts) {
     ids.forEach((id, i) => {
       const req = manifest.requirements[id];
       const r = results[id];
-      L.push(`  ${tier === "manual" ? `${i + 1}.` : "-"} [${tier}] ${id}${req.label ? ` — ${req.label}` : ""}`);
-      L.push(`     现状：${r.note}`);
+      L.push(`  ${i + 1}. ${req.label ?? id}`);
+      L.push(`     缺少：${r.note}`);
       if (tier === "auto" && req.install) L.push(`     AI 执行：${req.install}`);
       if (tier === "assisted" && req.install) {
         L.push(`     待确认命令：${req.install}`);
         if (req.sideEffect) L.push(`     副作用：${req.sideEffect}`);
       }
-      if (req.guide) for (const line of String(req.guide).split("\n")) L.push(`     ${line}`);
-      if (req.kind === "env" && r.missingKeys?.length) {
-        L.push(`     写入文件：${p.envFile}`);
-        if (!String(req.guide ?? "").includes("不要把值贴进对话")) {
-          L.push("     ⚠ 不要把值贴进对话，直接写文件");
-        }
-      }
-      if (req.approval) L.push(`     ⏳ 审批：${req.approval}`);
-      if (req.docs) L.push(`     文档：${req.docs}`);
-      if (req.minimalPermission) L.push("     ✅ 这是最小权限路径，优先走这条");
+      const quickGuide = String(req.quickGuide ?? req.guide ?? "")
+        .replace(/\$SKILL_DIR/g, SKILL_DIR)
+        .replace(/\$ENV_FILE/g, p.envFile)
+        .replace(/\$CONFIG_DIR/g, p.dir);
+      if (quickGuide) for (const line of String(quickGuide).split("\n")) L.push(`     ${line}`);
       L.push("");
     });
   }
 
   if (pending.length) {
-    L.push(`等前置项完成后自动检查（${pending.length} 项，现在无需处理）`);
-    for (const id of pending) {
-      L.push(`  - ${id}${manifest.requirements[id].label ? ` — ${manifest.requirements[id].label}` : ""}：${results[id].note}`);
-    }
+    L.push(`配置完成后会自动检查其余 ${pending.length} 项，无需现在处理。`);
     L.push("");
   }
 
@@ -420,6 +417,7 @@ function renderHuman(ev, opts) {
     L.push("AI 安装 auto 项：");
     L.push(`  node ${path.relative(process.cwd(), path.join(SKILL_DIR, "scripts", "setup.mjs")) || "scripts/setup.mjs"}`);
   }
+  L.push("详细说明：node scripts/preflight.mjs --explain");
   return L.join("\n");
 }
 

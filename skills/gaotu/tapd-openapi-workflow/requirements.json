@@ -34,6 +34,7 @@
       "label": "TAPD 应用凭据",
       "order": 2,
       "check": ["TAPD_CLIENT_ID", "TAPD_CLIENT_SECRET"],
+      "quickGuide": "获取：https://open.tapd.cn/ → 创建应用 → 复制 client_id / client_secret\n配置：在上面的 env 文件加入：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\n不要把密钥贴进对话。",
       "guide": "在 TAPD 开放平台创建应用，拿到 client_id / client_secret，然后写入凭据文件：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\nAI 不代做：这是长期有效的密钥，只能由你从控制台取得。\n⚠ 不要把值贴进对话，直接写文件。",
       "approval": "创建应用后还要单独申请 API 权限并授权到具体项目，通常需要 TAPD 管理员审批（1-2 天）",
       "docs": "https://open.tapd.cn/document/api-doc/API%E6%96%87%E6%A1%A3/%E4%BD%BF%E7%94%A8%E5%BF%85%E8%AF%BB.html"
@@ -45,6 +46,7 @@
       "label": "目标项目 ID",
       "order": 3,
       "check": ["TAPD_WORKSPACE_ID"],
+      "quickGuide": "获取：打开目标 TAPD 项目，URL 中 /tapd_fe/ 后面的数字就是 workspace_id\n配置：在上面的 env 文件加入：\n  TAPD_WORKSPACE_ID=<项目 ID>",
       "guide": "从 TAPD 项目 URL 里取数字段：https://www.tapd.cn/tapd_fe/<workspace_id>/... 中间那段数字就是项目 ID，写入凭据文件：\n  TAPD_WORKSPACE_ID=<项目 ID>\nAI 不代做：只有你知道要操作哪个项目。"
     },
 
@@ -54,6 +56,7 @@
       "label": "默认处理人字段（写操作必需）",
       "order": 4,
       "check": ["TAPD_DEFAULT_OWNER"],
+      "quickGuide": "获取：先完成凭据配置，再运行：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n配置：把 UserWorkspace.user 的完整值加入 env 文件：\n  TAPD_DEFAULT_OWNER=<完整账号字符串>",
       "guide": "必须是 TAPD 返回的完整账号字符串，不是英文后缀。就绪后可以用这条查：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n取 UserWorkspace.user 的精确值写入凭据文件：\n  TAPD_DEFAULT_OWNER=张三zhangsan01\nAI 可以帮你查，但由你确认写哪个值。"
     },
 
