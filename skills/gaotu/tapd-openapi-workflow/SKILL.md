@@ -12,9 +12,12 @@ description: Connect to TAPD Open API and operate TAPD projects remotely. Use wh
    或 `~/.claude/skills/tapd-openapi-workflow/scripts/preflight.mjs`）。**在它返回之前不要执行任何其他命令。**
 3. 退出码：`0` = 全部能力就绪；`10` = 部分就绪；`20` = 全部阻塞；`2` = 清单/用法错误。
 4. 退出码 `20`：**停下**。把输出整理成三段交给用户——AI 能直接做的 / 需要用户确认的 / 只能用户自己做的。
-   不要尝试绕过，不要自行安装，不要改用浏览器、连接器或抓取等替代路径。
+   首次配置时必须完整保留 preflight 对每个缺失项给出的“获取、要求、配置”内容和命令；不能只贴 env 模板，
+   不能省略获取入口或字段格式，不能让用户通过追问才知道值从哪里来。不要尝试绕过，不要自行安装，
+   不要改用浏览器、连接器或抓取等替代路径。
 5. 退出码 `10`：只使用 READY 的能力，并明确告诉用户哪个能力不可用、缺什么。
-   只关心某一个能力时用 `--capability <id>`，它会按该能力单独给出退出码。
+   只关心某一个能力时用 `--capability <id>`，它会按该能力单独给出退出码；本 skill 的合法 id 只有
+   `read` 和 `write`，只读连通性检查用 `--capability read`。
 6. 只安装 `requirements.json` 里 `tier: "auto"` 的项，方式是 `node <skill 目录>/scripts/setup.mjs`。
    它只执行清单里写死的命令。**绝不自己编 install 命令**；`tier: "assisted"` 有全局副作用，必须先向用户说明并取得同意（`--yes-assisted`）。
 7. `tier: "manual"` 的项一律交给用户，不要代做，也不要猜测替代方案。

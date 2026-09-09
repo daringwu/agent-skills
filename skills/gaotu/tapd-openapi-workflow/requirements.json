@@ -34,7 +34,7 @@
       "label": "TAPD 应用凭据",
       "order": 2,
       "check": ["TAPD_CLIENT_ID", "TAPD_CLIENT_SECRET"],
-      "quickGuide": "获取：https://open.tapd.cn/ → 创建应用 → 复制 client_id / client_secret\n配置：在上面的 env 文件加入：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\n不要把密钥贴进对话。",
+      "quickGuide": "获取：登录 https://open.tapd.cn/ → 开发者后台 → 创建应用；创建后进入该应用的“应用开发 → 测试项目”，取得应用 ID（client_id）和应用密钥（client_secret）。如果看不到开发者后台或无法创建应用，请联系本企业 TAPD 管理员开通。\n权限：在该应用的“应用开发 → 应用权限”申请本 workflow 所需的项目、迭代、需求、任务、工时和项目成员接口权限，并在“测试项目”关联目标企业/项目；权限或项目授权可能需要管理员审批。\n字段要求：client_id 和 client_secret 必须来自同一个开放应用；不要填个人 TAPD 登录账号密码，也不要手工生成 access_token。\n配置：在上面的 env 文件加入：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\n不要把密钥贴进对话。创建应用：https://open.tapd.cn/document/api-doc/快速入门/开发应用/创建应用.html；项目态鉴权：https://open.tapd.cn/document/api-doc/API文档/授权凭证/项目态.html",
       "guide": "在 TAPD 开放平台创建应用，拿到 client_id / client_secret，然后写入凭据文件：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\nAI 不代做：这是长期有效的密钥，只能由你从控制台取得。\n⚠ 不要把值贴进对话，直接写文件。",
       "approval": "创建应用后还要单独申请 API 权限并授权到具体项目，通常需要 TAPD 管理员审批（1-2 天）",
       "docs": "https://open.tapd.cn/document/api-doc/API%E6%96%87%E6%A1%A3/%E4%BD%BF%E7%94%A8%E5%BF%85%E8%AF%BB.html"
@@ -46,7 +46,7 @@
       "label": "目标项目 ID",
       "order": 3,
       "check": ["TAPD_WORKSPACE_ID"],
-      "quickGuide": "获取：打开目标 TAPD 项目，URL 中 /tapd_fe/ 后面的数字就是 workspace_id\n配置：在上面的 env 文件加入：\n  TAPD_WORKSPACE_ID=<项目 ID>",
+      "quickGuide": "获取：在浏览器打开实际要读写的 TAPD 项目页面；URL 形如 https://www.tapd.cn/tapd_fe/53165807/...，其中 /tapd_fe/ 后面的完整数字 53165807 就是 workspace_id。\n字段要求：必须是目标项目 ID，不是企业 ID、应用 ID、迭代 ID或示例值；保留 URL 中的完整数字。填错通常会返回 workspace not existed。\n配置：在上面的 env 文件加入：\n  TAPD_WORKSPACE_ID=<项目 ID>",
       "guide": "从 TAPD 项目 URL 里取数字段：https://www.tapd.cn/tapd_fe/<workspace_id>/... 中间那段数字就是项目 ID，写入凭据文件：\n  TAPD_WORKSPACE_ID=<项目 ID>\nAI 不代做：只有你知道要操作哪个项目。"
     },
 
@@ -56,7 +56,7 @@
       "label": "默认处理人字段（写操作必需）",
       "order": 4,
       "check": ["TAPD_DEFAULT_OWNER"],
-      "quickGuide": "获取：先完成凭据配置，再运行：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n配置：把 UserWorkspace.user 的完整值加入 env 文件：\n  TAPD_DEFAULT_OWNER=<完整账号字符串>",
+      "quickGuide": "用途：仅写操作必需；如果当前只测试读取，可以先不填。\n获取：先正确配置前三项并通过项目鉴权，再运行：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n字段要求：在返回列表中找到本人，复制 UserWorkspace.user（输出 JSON 的 user 字段）完整原值；不要填 name 字段，也不要凭姓名或英文账号猜。值可能形如 张三zhangsan01，也可能只有中文，以接口实际返回为准。\n配置：在上面的 env 文件加入：\n  TAPD_DEFAULT_OWNER=<UserWorkspace.user 的完整原值>",
       "guide": "必须是 TAPD 返回的完整账号字符串，不是英文后缀。就绪后可以用这条查：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\"\n取 UserWorkspace.user 的精确值写入凭据文件：\n  TAPD_DEFAULT_OWNER=张三zhangsan01\nAI 可以帮你查，但由你确认写哪个值。"
     },
 
@@ -81,7 +81,8 @@
       "volatile": true,
       "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" workspace --env-file \"$ENV_FILE\"",
       "timeoutMs": 60000,
-      "guide": "报 scope limited 说明凭据本身有效，但应用没有这个项目的 API 权限。\n需要 TAPD 管理员在开放平台把应用授权到该项目，并勾选需要的接口权限。\nAI 不代做：这是管理员后台操作。\n注意：写权限无法只读检查出来，第一次写入被拒时才会暴露——如果只需要读，read 能力已经可用。",
+      "quickGuide": "如果返回 workspace not existed/404：先核对 TAPD_WORKSPACE_ID 是否取自目标项目 URL，并确认没有误填企业、应用或迭代 ID。\n如果返回 scope limited/403：凭据通常有效，但应用尚未获得该项目或接口权限；进入 https://open.tapd.cn/ → 开发者后台 → 选择应用 → 应用开发 → 测试项目/应用权限，关联目标企业与项目并申请所需接口权限，必要时联系 TAPD 管理员审批。\n验证：授权完成后重新运行 preflight；写权限可能要到首次写请求时才能完全确认。",
+      "guide": "如果返回 workspace not existed/404，先核对 workspace_id 是否确实来自目标项目 URL。报 scope limited/403 说明凭据通常有效，但应用没有这个项目或对应接口的 API 权限。\n需要在开放平台的开发者后台 → 选择应用 → 应用开发 → 测试项目/应用权限中关联目标项目并申请权限，必要时由 TAPD 管理员审批。\nAI 不代做：这是管理员后台操作。\n注意：写权限无法只读检查出来，第一次写入被拒时才会暴露——如果只需要读，read 能力已经可用。",
       "approval": "项目授权由 TAPD 管理员操作，通常 1-2 天",
       "docs": "https://open.tapd.cn/document/api-doc/API%E6%96%87%E6%A1%A3/%E6%8E%88%E6%9D%83%E5%87%AD%E8%AF%81/%E9%A1%B9%E7%9B%AE%E6%80%81.html"
     }
