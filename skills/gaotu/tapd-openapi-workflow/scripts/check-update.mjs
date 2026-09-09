@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+
+// Non-blocking update check. Never installs, modifies the skill, or fails the caller.
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SKILL_DIR = path.resolve(SCRIPT_DIR, "..");
+const VERSION_FILE = path.join(SKILL_DIR, "version.json");
+const CONFIG_ROOT = process.env.AGENT_SKILLS_HOME || path.join(os.homedir(), ".config", "agent-skills");
+const CACHE_FILE = path.join(CONFIG_ROOT, "tapd-openapi-workflow", "update-check.json");
+const CACHE_MS = 24 * 60 * 60 * 1000;
+const TIMEOUT_MS = 3000;
+
+function readJson(file) {
+  try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; }
+}
+
+function isNewer(remote, local) {
+  const parse = (value) => String(value).split(".").map(Number);
+  const a = parse(remote);
+  const b = parse(local);
+  if (a.some(Number.isNaN) || b.some(Number.isNaN)) return false;
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0);
+  }
+  return false;
+}
+
+function writeCache(value) {
+  try {
+    fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
+    fs.writeFileSync(CACHE_FILE, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
+  } catch { /* cache is optional */ }
+}
+
+async function main() {
+  const local = readJson(VERSION_FILE);
+  if (!local?.version || !local.repository || !local.path || !local.ref) return;
+
+  const cached = readJson(CACHE_FILE);
+  let remoteVersion = cached?.remoteVersion;
+  if (!cached?.checkedAt || Date.now() - cached.checkedAt > CACHE_MS) {
+    const repo = local.repository.replace(/\/$/, "").replace("https://github.com/", "");
+    const url = `https://raw.githubusercontent.com/${repo}/${local.ref}/${local.path}/version.json`;
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+      if (!response.ok) return;
+      remoteVersion = (await response.json()).version;
+      writeCache({ checkedAt: Date.now(), remoteVersion });
+    } catch { return; }
+  }
+
+  if (!isNewer(remoteVersion, local.version)) return;
+
+  console.log(`⬆ tapd-openapi-workflow 有新版：${local.version} → ${remoteVersion}`);
+  console.log(`来源：${local.repository}/tree/${local.ref}/${local.path}`);
+  console.log(`当前目录：${SKILL_DIR}`);
+  console.log(`配置目录：${local.configDir}（更新时不要删除或覆盖）`);
+  console.log("可告诉 AI：从上述仓库获取该 skill 的完整目录，更新当前安装；保留配置目录，更新后重新运行 scripts/check-update.mjs 和 scripts/preflight.mjs。版本检查不阻塞当前任务。");
+}
+
+main().catch(() => {});

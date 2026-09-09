@@ -175,6 +175,11 @@ skills/<scope>/<name>/
 5. `./tools/policy-todo.sh` 确认没有漏掉该定义的口径
 6. 在一台**没配过**的机器（或临时改 `AGENT_SKILLS_HOME` 指向空目录）上跑一次，确认 BLOCKED 时的引导是可执行的
 
+## 版本检查
+
+如果 skill 支持远端更新检测，版本信息放在该 skill 根目录的 `version.json`。每次发布会改变该 skill 行为的提交都必须递增版本号。
+检查脚本只能提示；网络失败时必须静默且不能阻塞 skill 的正常功能，也不能未经用户授权自行覆盖安装目录或配置目录。
+
 ## 已知取舍
 
 - **preflight/setup 是复制而非共享库。** 因为每个 skill 必须能被单独安装——Codex 的 skill-installer 只拉单个 skill 路径，一旦 import 仓库里的 `lib/` 就会在单独安装时断掉。代价是改模板后必须跑 `tools/sync-core.sh`。

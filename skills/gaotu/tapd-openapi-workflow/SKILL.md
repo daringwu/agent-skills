@@ -7,20 +7,21 @@ description: Connect to TAPD Open API and operate TAPD projects remotely. Use wh
 
 ## 门禁：每次使用本 skill 的第一步
 
-1. 先运行 `node <本 skill 目录>/scripts/preflight.mjs`（如 `~/.codex/skills/tapd-openapi-workflow/scripts/preflight.mjs`
+1. 先运行 `node <本 skill 目录>/scripts/check-update.mjs`。版本检查最多等待 3 秒并缓存 24 小时；检查失败、超时或离线时不提示、不阻塞当前任务。只有确认远端版本更高时才把脚本输出的更新提示交给用户，然后继续下面的 preflight 和用户原任务；不要强制更新。
+2. 再运行 `node <本 skill 目录>/scripts/preflight.mjs`（如 `~/.codex/skills/tapd-openapi-workflow/scripts/preflight.mjs`
    或 `~/.claude/skills/tapd-openapi-workflow/scripts/preflight.mjs`）。**在它返回之前不要执行任何其他命令。**
-2. 退出码：`0` = 全部能力就绪；`10` = 部分就绪；`20` = 全部阻塞；`2` = 清单/用法错误。
-3. 退出码 `20`：**停下**。把输出整理成三段交给用户——AI 能直接做的 / 需要用户确认的 / 只能用户自己做的。
+3. 退出码：`0` = 全部能力就绪；`10` = 部分就绪；`20` = 全部阻塞；`2` = 清单/用法错误。
+4. 退出码 `20`：**停下**。把输出整理成三段交给用户——AI 能直接做的 / 需要用户确认的 / 只能用户自己做的。
    不要尝试绕过，不要自行安装，不要改用浏览器、连接器或抓取等替代路径。
-4. 退出码 `10`：只使用 READY 的能力，并明确告诉用户哪个能力不可用、缺什么。
+5. 退出码 `10`：只使用 READY 的能力，并明确告诉用户哪个能力不可用、缺什么。
    只关心某一个能力时用 `--capability <id>`，它会按该能力单独给出退出码。
-5. 只安装 `requirements.json` 里 `tier: "auto"` 的项，方式是 `node <skill 目录>/scripts/setup.mjs`。
+6. 只安装 `requirements.json` 里 `tier: "auto"` 的项，方式是 `node <skill 目录>/scripts/setup.mjs`。
    它只执行清单里写死的命令。**绝不自己编 install 命令**；`tier: "assisted"` 有全局副作用，必须先向用户说明并取得同意（`--yes-assisted`）。
-6. `tier: "manual"` 的项一律交给用户，不要代做，也不要猜测替代方案。
-7. 凭据只写入 `~/.config/agent-skills/tapd-openapi-workflow/env`（chmod 600）。不要回显值、不要写进仓库、不要贴进对话。
-8. 要给用户看完整前提说明（不做任何检查）：`node scripts/preflight.mjs --explain`。
+7. `tier: "manual"` 的项一律交给用户，不要代做，也不要猜测替代方案。
+8. 凭据只写入 `~/.config/agent-skills/tapd-openapi-workflow/env`（chmod 600）。不要回显值、不要写进仓库、不要贴进对话。
+9. 要给用户看完整前提说明（不做任何检查）：`node scripts/preflight.mjs --explain`。
 
-9. 涉及「填什么值」的判断前，先读 `policies/policy.json`。**其中 `value` 为 `null` 的项表示口径尚未定义——
+10. 涉及「填什么值」的判断前，先读 `policies/policy.json`。**其中 `value` 为 `null` 的项表示口径尚未定义——
    必须先问用户，绝不自行假设、绝不沿用 note 里的示例值。** 判断类口径读 `policies/*.md`。
 
 前提条件的唯一事实源是 `requirements.json`，量化口径的唯一事实源是 `policies/policy.json`。
