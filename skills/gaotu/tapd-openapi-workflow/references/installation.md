@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/daringwu/agent-skills/main/tools/install-skill
 node install-skill-from-github.mjs --repo daringwu/agent-skills --ref main --path skills/gaotu/tapd-openapi-workflow --dest <Agent的skills目录>/tapd-openapi-workflow
 ```
 
-安装器使用 Git sparse checkout，只获取目标 Skill 路径。已有目标会改名为带时间戳的备份；用户配置目录不会被覆盖。
+安装器使用 Git sparse checkout，只获取目标 Skill 路径。已有目标会移动到用户配置目录的 `agent-skills/install-backups/`；备份不会被 Agent 重复发现，用户配置不会被覆盖。
 
 配置位置：
 

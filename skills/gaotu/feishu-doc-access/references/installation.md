@@ -10,7 +10,7 @@ Skill 不依赖 Codex 专属工具。运行时只要求 Node.js 20+、Git 和官
 node install-skill-from-github.mjs --repo daringwu/agent-skills --ref main --path skills/gaotu/feishu-doc-access --dest <Agent的skills目录>/feishu-doc-access
 ```
 
-安装器使用 Git sparse checkout，只取目标 Skill 路径，不要求用户手工克隆完整仓库。目标已存在时先改名为带时间戳的备份，再原子替换；机器配置目录不会被覆盖。
+安装器使用 Git sparse checkout，只取目标 Skill 路径，不要求用户手工克隆完整仓库。目标已存在时先移动到用户配置目录的 `agent-skills/install-backups/`，再原子替换；备份不会被 Agent 重复发现，机器配置目录不会被覆盖。
 
 安装器地址：
 

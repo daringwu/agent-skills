@@ -47,7 +47,10 @@ function main() {
     fs.cpSync(source, stage, { recursive: true, errorOnExist: true });
     let backup = null;
     if (fs.existsSync(destination)) {
-      backup = `${destination}.bak-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+      const configRoot = process.env.AGENT_SKILLS_HOME || path.join(os.homedir(), ".config", "agent-skills");
+      const backupRoot = path.join(configRoot, "install-backups");
+      fs.mkdirSync(backupRoot, { recursive: true });
+      backup = path.join(backupRoot, `${path.basename(destination)}-${new Date().toISOString().replace(/[:.]/g, "-")}`);
       fs.renameSync(destination, backup);
     }
     fs.renameSync(stage, destination);
