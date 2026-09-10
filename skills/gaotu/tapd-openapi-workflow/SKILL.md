@@ -83,6 +83,12 @@ TAPD_DEFAULT_OWNER=<workspaces/users 返回的完整账号串>
    - 重排每日工时的口径（上限、是否可排周末、只移超限行）见 `policies/hours.md` 与
      `policies/policy.json` 的 `dailyHoursCap` / `allowWeekendHours`。
 
+6. **Use the closed-loop executor**
+   - 单条普通创建/更新可直接调用 `tapd_tool.mjs`；每次写入都会先检查冲突，写后回读验证。
+   - 涉及多个任务或多个日期时，必须生成 JSON plan，先运行 `apply-plan.mjs --dry-run` 输出按任务分组的完整预览，
+     用户确认后再加 `--confirm` 执行。删除、覆盖、替换即使只有一条也必须确认。
+   - 不要绕过脚本直接拼 TAPD 写请求。写入发生网络异常时脚本不会盲目重试；明确 429 才按 5/10/20 秒重试。
+
 ## Reusable Script
 
 Use `scripts/tapd_tool.mjs` for common operations. It reads env vars or `--env-file`.
@@ -96,12 +102,14 @@ node <skill 目录>/scripts/tapd_tool.mjs iteration --env-file ~/.config/agent-s
 node <skill 目录>/scripts/tapd_tool.mjs daily-hours --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id> --prefix '<policy:taskNamePrefix.frontend>'
 node <skill 目录>/scripts/tapd_tool.mjs create-task --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id> --story-id <story-id> --name '<policy:taskNamePrefix.frontend>示例任务' --status open
 node <skill 目录>/scripts/tapd_tool.mjs add-timesheet --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --task-id <task-id> --spentdate <YYYY-MM-DD> --timespent <hours> --memo '<做了什么>'
+node <skill 目录>/scripts/apply-plan.mjs --plan-file <plan.json> --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --dry-run
+node <skill 目录>/scripts/apply-plan.mjs --plan-file <plan.json> --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --confirm
 ```
 
 示例里 `<...>` 都是占位符：`<policy:...>` 的实际值取 `policies/policy.json`，
 ID 类参数从 TAPD 现查，项目相关的值取机器级配置文件。本文档不写死任何真实值。
 
-Prefer the script for reads, daily-hour audits, and simple writes. For complex migrations, write a one-off script that follows the same patterns: idempotent reads, soft-delete rather than hard-delete, one TAPD row per task/date timesheet, and final verification.
+Plan 格式和全部命令见 `references/executor-guide.md`。复杂迁移也必须走 plan 执行器，不要临时写绕过安全策略的一次性脚本。
 
 ## 两层结构
 

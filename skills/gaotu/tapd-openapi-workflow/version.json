@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "2.0.0",
   "repository": "https://github.com/daringwu/agent-skills",
   "ref": "main",
   "path": "skills/gaotu/tapd-openapi-workflow",
