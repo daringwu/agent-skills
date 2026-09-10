@@ -31,6 +31,24 @@
       "source": "用户确认 2026-09-10"
     },
 
+    "resultDetail": {
+      "value": { "single": "summary", "batch": "full-detail" },
+      "note": "单条操作只展示成功/失败、关键 ID 和关键结果；批量操作展示每个任务及每条工时的完整明细。",
+      "source": "用户确认 2026-09-10"
+    },
+
+    "batchGrouping": {
+      "value": "by-task",
+      "note": "批量预览和执行结果按任务分组，每个任务下面列各日期工时。",
+      "source": "用户确认 2026-09-10"
+    },
+
+    "clarificationMode": {
+      "value": "group-normal-separate-high-risk",
+      "note": "普通不明确项一次列出；高风险写入问题逐个确认。",
+      "source": "用户确认 2026-09-10"
+    },
+
     "taskDescription": {
       "value": "deliverable-and-scope",
       "note": "任务描述写可验收产出与范围；AI 可基于客观活动记录起草，写入前由用户确认。",
