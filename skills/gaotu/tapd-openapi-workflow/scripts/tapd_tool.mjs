@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const API = process.env.TAPD_API_BASE_URL || "https://api.tapd.cn";
 const PAGE_SIZE = 200;
@@ -26,8 +28,10 @@ function parseArgs(argv) {
 
 function loadEnv(file) {
   const out = { ...process.env };
-  if (!file) return out;
-  const text = fs.readFileSync(file, "utf8");
+  const configRoot = process.env.AGENT_SKILLS_HOME || path.join(os.homedir(), ".config", "agent-skills");
+  const target = file || path.join(configRoot, "tapd-openapi-workflow", "env");
+  if (!fs.existsSync(target)) return out;
+  const text = fs.readFileSync(target, "utf8");
   for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;

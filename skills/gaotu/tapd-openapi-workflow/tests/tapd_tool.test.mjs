@@ -4,9 +4,13 @@ import http from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const exec = promisify(execFile);
 const tool = fileURLToPath(new URL("../scripts/tapd_tool.mjs", import.meta.url));
+const updateCheck = fileURLToPath(new URL("../scripts/check-update.mjs", import.meta.url));
 const tasks = [{ id: "1", name: "Existing Task", status: "open", iteration_id: "10", story_id: "20", owner: "alice", effort: "0" }];
 const sheets = [];
 let nextTask = 2;
@@ -98,6 +102,34 @@ test("delete needs confirmation and verifies deletion", async () => {
   const result = JSON.parse(stdout);
   assert.equal(result.status, "deleted_and_verified");
   assert.equal(result.task_synced.status, "open");
+});
+
+test("loads the default cross-platform config directory", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "tapd-config-test-"));
+  const directory = path.join(root, "tapd-openapi-workflow");
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, "env"), "TAPD_CLIENT_ID=id\nTAPD_CLIENT_SECRET=secret\nTAPD_WORKSPACE_ID=9\n");
+  const cleanEnv = { ...process.env, TAPD_API_BASE_URL: api, AGENT_SKILLS_HOME: root };
+  delete cleanEnv.TAPD_CLIENT_ID;
+  delete cleanEnv.TAPD_CLIENT_SECRET;
+  delete cleanEnv.TAPD_WORKSPACE_ID;
+  const { stdout } = await exec(process.execPath, [tool, "token-check"], { env: cleanEnv });
+  assert.equal(JSON.parse(stdout).has_access_token, true);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("update check gives an Agent-neutral executable update method", async () => {
+  const updateServer = http.createServer((req, res) => {
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ version: "9.0.0" }));
+  });
+  await new Promise((resolve) => updateServer.listen(0, "127.0.0.1", resolve));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "tapd-update-test-"));
+  const { stdout } = await exec(process.execPath, [updateCheck], { env: { ...process.env, AGENT_SKILLS_HOME: root, TAPD_VERSION_URL: `http://127.0.0.1:${updateServer.address().port}/version.json`, TAPD_UPDATE_CACHE_MS: "0" } });
+  assert.match(stdout, /2\.1\.0 → 9\.0\.0/);
+  assert.match(stdout, /install-skill-from-github\.mjs/);
+  await new Promise((resolve) => updateServer.close(resolve));
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test.after(() => server.close());

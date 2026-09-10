@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -53,7 +55,8 @@ if ((isBatch || destructive) && !args.confirm) throw new Error("full plan requir
 
 const tool = fileURLToPath(new URL("./tapd_tool.mjs", import.meta.url));
 const common = [];
-const defaultEnv = `${process.env.HOME}/.config/agent-skills/tapd-openapi-workflow/env`;
+const configRoot = process.env.AGENT_SKILLS_HOME || path.join(os.homedir(), ".config", "agent-skills");
+const defaultEnv = path.join(configRoot, "tapd-openapi-workflow", "env");
 if (args["env-file"] || fs.existsSync(defaultEnv)) common.push("--env-file", args["env-file"] || defaultEnv);
 if (args["workspace-id"]) common.push("--workspace-id", String(args["workspace-id"]));
 

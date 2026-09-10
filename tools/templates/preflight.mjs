@@ -141,7 +141,8 @@ function expandPath(p, ctx) {
   return p
     .replace(/^~(?=\/|$)/, os.homedir())
     .replace(/\$SKILL_DIR/g, ctx.skillDir)
-    .replace(/\$CONFIG_DIR/g, ctx.configDir);
+    .replace(/\$CONFIG_DIR/g, ctx.configDir)
+    .replace(/\$ENV_FILE/g, ctx.envFile);
 }
 
 function run(cmd, env, timeoutMs) {
@@ -256,6 +257,7 @@ function evaluate(manifest, opts) {
     env: loadEnv(p.envFile),
     skillDir: SKILL_DIR,
     configDir: p.dir,
+    envFile: p.envFile,
   };
   // Exposed to check/install commands so complex checks can live in scripts/checks/*.mjs
   // instead of being crammed into a JSON string.

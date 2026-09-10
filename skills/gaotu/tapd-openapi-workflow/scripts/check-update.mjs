@@ -12,8 +12,8 @@ const SKILL_DIR = path.resolve(SCRIPT_DIR, "..");
 const VERSION_FILE = path.join(SKILL_DIR, "version.json");
 const CONFIG_ROOT = process.env.AGENT_SKILLS_HOME || path.join(os.homedir(), ".config", "agent-skills");
 const CACHE_FILE = path.join(CONFIG_ROOT, "tapd-openapi-workflow", "update-check.json");
-const CACHE_MS = 24 * 60 * 60 * 1000;
-const TIMEOUT_MS = 3000;
+const CACHE_MS = Number(process.env.TAPD_UPDATE_CACHE_MS ?? 24 * 60 * 60 * 1000);
+const TIMEOUT_MS = Number(process.env.TAPD_UPDATE_TIMEOUT_MS ?? 3000);
 
 function readJson(file) {
   try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; }
@@ -45,7 +45,7 @@ async function main() {
   let remoteVersion = cached?.remoteVersion;
   if (!cached?.checkedAt || Date.now() - cached.checkedAt > CACHE_MS) {
     const repo = local.repository.replace(/\/$/, "").replace("https://github.com/", "");
-    const url = `https://raw.githubusercontent.com/${repo}/${local.ref}/${local.path}/version.json`;
+    const url = process.env.TAPD_VERSION_URL || `https://raw.githubusercontent.com/${repo}/${local.ref}/${local.path}/version.json`;
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
       if (!response.ok) return;
@@ -58,9 +58,10 @@ async function main() {
 
   console.log(`⬆ tapd-openapi-workflow 有新版：${local.version} → ${remoteVersion}`);
   console.log(`来源：${local.repository}/tree/${local.ref}/${local.path}`);
-  console.log(`当前目录：${SKILL_DIR}`);
+  console.log("通用更新器：https://raw.githubusercontent.com/daringwu/agent-skills/main/tools/install-skill-from-github.mjs");
+  console.log(`更新命令：node install-skill-from-github.mjs --repo daringwu/agent-skills --ref ${local.ref} --path ${local.path} --dest "${SKILL_DIR}"`);
   console.log(`配置目录：${local.configDir}（更新时不要删除或覆盖）`);
-  console.log("可告诉 AI：从上述仓库获取该 skill 的完整目录，更新当前安装；保留配置目录，更新后重新运行 scripts/check-update.mjs 和 scripts/preflight.mjs。版本检查不阻塞当前任务。");
+  console.log("版本检查不阻塞当前任务。");
 }
 
 main().catch(() => {});

@@ -1,6 +1,6 @@
 ---
 name: tapd-openapi-workflow
-description: Connect to TAPD Open API and operate TAPD projects remotely. Use when Codex needs to read official TAPD API docs, configure TAPD app credentials, exchange access tokens, inspect workspaces/iterations/stories/tasks, create or update TAPD tasks/stories/Chores, write or rebalance TAPD timesheets, migrate task structures, verify daily hours, or debug TAPD Open API errors such as scope limited, Too Many Requests, missing workspace_id, owner fields, status, effort, effort_completed, priority, begin/due, story_id, or iteration_id.
+description: Connect any SKILL.md-compatible Agent to TAPD Open API and operate projects remotely. Use to configure TAPD credentials, inspect workspaces, iterations, stories, tasks and members, create or update work items, manage timesheets, migrate task structures, verify hours, or diagnose TAPD API errors.
 ---
 
 # TAPD OpenAPI Workflow
@@ -8,8 +8,7 @@ description: Connect to TAPD Open API and operate TAPD projects remotely. Use wh
 ## 门禁：每次使用本 skill 的第一步
 
 1. 先运行 `node <本 skill 目录>/scripts/check-update.mjs`。版本检查最多等待 3 秒并缓存 24 小时；检查失败、超时或离线时不提示、不阻塞当前任务。只有确认远端版本更高时才把脚本输出的更新提示交给用户，然后继续下面的 preflight 和用户原任务；不要强制更新。
-2. 再运行 `node <本 skill 目录>/scripts/preflight.mjs`（如 `~/.codex/skills/tapd-openapi-workflow/scripts/preflight.mjs`
-   或 `~/.claude/skills/tapd-openapi-workflow/scripts/preflight.mjs`）。**在它返回之前不要执行任何其他命令。**
+2. 再运行 `node <本 skill 目录>/scripts/preflight.mjs`；安装目录由当前 Agent 决定，不依赖某个产品的固定路径。**在它返回之前不要执行任何其他命令。**
 3. 退出码：`0` = 全部能力就绪；`10` = 部分就绪；`20` = 全部阻塞；`2` = 清单/用法错误。
 4. 退出码 `20`：**停下**。把输出整理成三段交给用户——AI 能直接做的 / 需要用户确认的 / 只能用户自己做的。
    首次配置时必须完整保留 preflight 对每个缺失项给出的“获取、要求、配置”内容和命令；不能只贴 env 模板，
@@ -21,7 +20,7 @@ description: Connect to TAPD Open API and operate TAPD projects remotely. Use wh
 6. 只安装 `requirements.json` 里 `tier: "auto"` 的项，方式是 `node <skill 目录>/scripts/setup.mjs`。
    它只执行清单里写死的命令。**绝不自己编 install 命令**；`tier: "assisted"` 有全局副作用，必须先向用户说明并取得同意（`--yes-assisted`）。
 7. `tier: "manual"` 的项一律交给用户，不要代做，也不要猜测替代方案。
-8. 凭据只写入 `~/.config/agent-skills/tapd-openapi-workflow/env`（chmod 600）。不要回显值、不要写进仓库、不要贴进对话。
+8. 凭据只写入用户配置目录的 `.config/agent-skills/tapd-openapi-workflow/env`；macOS/Linux 权限设为 600，Windows 保持仅当前用户可访问。不要回显值、不要写进仓库、不要贴进对话。
 9. 要给用户看完整前提说明（不做任何检查）：`node scripts/preflight.mjs --explain`。
 
 10. 涉及「填什么值」的判断前，先读 `policies/policy.json`。**其中 `value` 为 `null` 的项表示口径尚未定义——
@@ -32,6 +31,8 @@ description: Connect to TAPD Open API and operate TAPD projects remotely. Use wh
 
 Use this skill for TAPD Open API work: connecting an app, reading the official docs, creating tasks, moving tasks between stories/Chores, writing actual hours with timesheets, and verifying iteration totals.
 
+The implementation is Agent-neutral and runs on Node.js 20+ across macOS, Linux, and Windows. For installation and update commands, read `references/installation.md`.
+
 ## Core Rules
 
 - Treat TAPD credentials as secrets. Never print access tokens, `client_secret`, API passwords, or full auth headers.
@@ -39,14 +40,14 @@ Use this skill for TAPD Open API work: connecting an app, reading the official d
 - Credentials live in the per-machine config file, never in the repo or the workspace:
 
 ```env
-# ~/.config/agent-skills/tapd-openapi-workflow/env   (chmod 600)
+# 用户目录/.config/agent-skills/tapd-openapi-workflow/env
 TAPD_CLIENT_ID=tapd-app-...
 TAPD_CLIENT_SECRET=...
 TAPD_WORKSPACE_ID=<项目 ID，从 TAPD 项目 URL 取>
 TAPD_DEFAULT_OWNER=<workspaces/users 返回的完整账号串>
 ```
 
-  Pass it with `--env-file ~/.config/agent-skills/tapd-openapi-workflow/env`. Preflight reads the same file.
+  Scripts and preflight read this location automatically; `--env-file <path>` can override it.
 
 - Use project URLs to infer `workspace_id`: in `https://www.tapd.cn/tapd_fe/<workspace_id>/...`, the numeric path segment is the project ID.
 - For current-user updates, pass `current_user` as the exact TAPD user field, often the full display/account string returned by `workspaces/users`, not just an English suffix.
@@ -96,14 +97,14 @@ Use `scripts/tapd_tool.mjs` for common operations. It reads env vars or `--env-f
 Examples:
 
 ```bash
-node <skill 目录>/scripts/tapd_tool.mjs token-check --env-file ~/.config/agent-skills/tapd-openapi-workflow/env
-node <skill 目录>/scripts/tapd_tool.mjs workspace --env-file ~/.config/agent-skills/tapd-openapi-workflow/env
-node <skill 目录>/scripts/tapd_tool.mjs iteration --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id>
-node <skill 目录>/scripts/tapd_tool.mjs daily-hours --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id> --prefix '<policy:taskNamePrefix.frontend>'
-node <skill 目录>/scripts/tapd_tool.mjs create-task --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --iteration-id <iteration-id> --story-id <story-id> --name '<policy:taskNamePrefix.frontend>示例任务' --status open
-node <skill 目录>/scripts/tapd_tool.mjs add-timesheet --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --task-id <task-id> --spentdate <YYYY-MM-DD> --timespent <hours> --memo '<做了什么>'
-node <skill 目录>/scripts/apply-plan.mjs --plan-file <plan.json> --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --dry-run
-node <skill 目录>/scripts/apply-plan.mjs --plan-file <plan.json> --env-file ~/.config/agent-skills/tapd-openapi-workflow/env --confirm
+node <skill 目录>/scripts/tapd_tool.mjs token-check
+node <skill 目录>/scripts/tapd_tool.mjs workspace
+node <skill 目录>/scripts/tapd_tool.mjs iteration --iteration-id <iteration-id>
+node <skill 目录>/scripts/tapd_tool.mjs daily-hours --iteration-id <iteration-id> --prefix '<policy:taskNamePrefix.frontend>'
+node <skill 目录>/scripts/tapd_tool.mjs create-task --iteration-id <iteration-id> --story-id <story-id> --name '<policy:taskNamePrefix.frontend>示例任务' --status open
+node <skill 目录>/scripts/tapd_tool.mjs add-timesheet --task-id <task-id> --spentdate <YYYY-MM-DD> --timespent <hours> --memo '<做了什么>'
+node <skill 目录>/scripts/apply-plan.mjs --plan-file <plan.json> --dry-run
+node <skill 目录>/scripts/apply-plan.mjs --plan-file <plan.json> --confirm
 ```
 
 示例里 `<...>` 都是占位符：`<policy:...>` 的实际值取 `policies/policy.json`，

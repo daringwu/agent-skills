@@ -25,7 +25,7 @@
       "order": 1,
       "check": "node -v",
       "minVersion": "20",
-      "guide": "装 Node 20 或更高版本（nvm install 20 / brew install node / nodejs.org），装完重跑 preflight。\nAI 不代装：会改动 shell 环境和全局 PATH。"
+      "guide": "获取位置：https://nodejs.org/ 下载 Node.js 20 LTS 或更高版本。macOS/Linux 也可使用现有版本管理器；Windows 使用官网安装包或现有包管理器。\n字段与格式：`node --version` 必须输出 v20.0.0 或更高；不要把 npm 版本当 Node 版本。\n验证：node --version\nAI 不代装：会修改系统应用和 PATH。"
     },
 
     "tapd-credentials": {
@@ -34,7 +34,7 @@
       "label": "TAPD 应用凭据",
       "order": 2,
       "check": ["TAPD_CLIENT_ID", "TAPD_CLIENT_SECRET"],
-      "quickGuide": "获取：登录 https://open.tapd.cn/ → 开发者后台 → 创建应用；创建后进入该应用的“应用开发 → 测试项目”，取得应用 ID（client_id）和应用密钥（client_secret）。如果看不到开发者后台或无法创建应用，请联系本企业 TAPD 管理员开通。\n权限：在该应用的“应用开发 → 应用权限”申请本 workflow 所需的项目、迭代、需求、任务、工时和项目成员接口权限，并在“测试项目”关联目标企业/项目；权限或项目授权可能需要管理员审批。\n字段要求：client_id 和 client_secret 必须来自同一个开放应用；不要填个人 TAPD 登录账号密码，也不要手工生成 access_token。\n配置：在上面的 env 文件加入：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\n不要把密钥贴进对话。创建应用：https://open.tapd.cn/document/api-doc/快速入门/开发应用/创建应用.html；项目态鉴权：https://open.tapd.cn/document/api-doc/API文档/授权凭证/项目态.html",
+      "quickGuide": "获取：登录 https://open.tapd.cn/ → 开发者后台 → 创建应用；创建后进入该应用的“应用开发 → 测试项目”，取得应用 ID（client_id）和应用密钥（client_secret）。如果看不到开发者后台或无法创建应用，请联系本企业 TAPD 管理员开通。\n权限：在该应用的“应用开发 → 应用权限”申请本 workflow 所需的项目、迭代、需求、任务、工时和项目成员接口权限，并在“测试项目”关联目标企业/项目；权限或项目授权可能需要管理员审批。\n字段要求：client_id 和 client_secret 必须来自同一个开放应用；不要填个人 TAPD 登录账号密码，也不要手工生成 access_token。\n配置文件：用户目录下 .config/agent-skills/tapd-openapi-workflow/env。macOS/Linux 设为 chmod 600；Windows 保持仅当前用户可访问。加入：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\n不要把密钥贴进对话。创建应用：https://open.tapd.cn/document/api-doc/快速入门/开发应用/创建应用.html；项目态鉴权：https://open.tapd.cn/document/api-doc/API文档/授权凭证/项目态.html",
       "guide": "在 TAPD 开放平台创建应用，拿到 client_id / client_secret，然后写入凭据文件：\n  TAPD_CLIENT_ID=tapd-app-xxxxx\n  TAPD_CLIENT_SECRET=xxxxx\nAI 不代做：这是长期有效的密钥，只能由你从控制台取得。\n⚠ 不要把值贴进对话，直接写文件。",
       "approval": "创建应用后还要单独申请 API 权限并授权到具体项目，通常需要 TAPD 管理员审批（1-2 天）",
       "docs": "https://open.tapd.cn/document/api-doc/API%E6%96%87%E6%A1%A3/%E4%BD%BF%E7%94%A8%E5%BF%85%E8%AF%BB.html"
@@ -62,24 +62,24 @@
 
     "tapd-token": {
       "tier": "manual",
-      "kind": "command",
+      "kind": "node-script",
       "label": "凭据能换到 access token",
       "dependsOn": ["node", "tapd-credentials"],
       "order": 5,
       "volatile": true,
-      "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" token-check --env-file \"$ENV_FILE\"",
+      "check": { "path": "scripts/tapd_tool.mjs", "args": ["token-check", "--env-file", "$ENV_FILE"] },
       "timeoutMs": 60000,
       "guide": "如果这一步失败，通常是 client_id/client_secret 写错或已被轮换。回 TAPD 开放平台核对后更新凭据文件。\n检查命令只打印 has_access_token: true，不会输出 token 本身。"
     },
 
     "tapd-owner-valid": {
       "tier": "manual",
-      "kind": "command",
+      "kind": "node-script",
       "label": "默认处理人是当前项目的有效成员字段",
       "dependsOn": ["tapd-token", "tapd-workspace-auth", "tapd-default-owner"],
       "order": 7,
       "volatile": true,
-      "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" validate-owner --env-file \"$ENV_FILE\"",
+      "check": { "path": "scripts/tapd_tool.mjs", "args": ["validate-owner", "--env-file", "$ENV_FILE"] },
       "timeoutMs": 60000,
       "quickGuide": "当前 TAPD_DEFAULT_OWNER 不是项目成员接口返回的精确 user 值。先运行：\n  node \"$SKILL_DIR/scripts/tapd_tool.mjs\" users --env-file \"$ENV_FILE\" --search <你的姓名>\n从匹配结果复制 user 字段的完整原值写回 env；不要复制 name，也不要自行拼接。",
       "guide": "通过 workspaces/users 校验 TAPD_DEFAULT_OWNER 必须精确匹配当前项目的 UserWorkspace.user。"
@@ -87,12 +87,12 @@
 
     "tapd-workspace-auth": {
       "tier": "manual",
-      "kind": "command",
+      "kind": "node-script",
       "label": "应用已被授权到该项目",
       "dependsOn": ["tapd-token", "tapd-workspace-id"],
       "order": 6,
       "volatile": true,
-      "check": "node \"$SKILL_DIR/scripts/tapd_tool.mjs\" workspace --env-file \"$ENV_FILE\"",
+      "check": { "path": "scripts/tapd_tool.mjs", "args": ["workspace", "--env-file", "$ENV_FILE"] },
       "timeoutMs": 60000,
       "quickGuide": "如果返回 workspace not existed/404：先核对 TAPD_WORKSPACE_ID 是否取自目标项目 URL，并确认没有误填企业、应用或迭代 ID。\n如果返回 scope limited/403：凭据通常有效，但应用尚未获得该项目或接口权限；进入 https://open.tapd.cn/ → 开发者后台 → 选择应用 → 应用开发 → 测试项目/应用权限，关联目标企业与项目并申请所需接口权限，必要时联系 TAPD 管理员审批。\n验证：授权完成后重新运行 preflight；写权限可能要到首次写请求时才能完全确认。",
       "guide": "如果返回 workspace not existed/404，先核对 workspace_id 是否确实来自目标项目 URL。报 scope limited/403 说明凭据通常有效，但应用没有这个项目或对应接口的 API 权限。\n需要在开放平台的开发者后台 → 选择应用 → 应用开发 → 测试项目/应用权限中关联目标项目并申请权限，必要时由 TAPD 管理员审批。\nAI 不代做：这是管理员后台操作。\n注意：写权限无法只读检查出来，第一次写入被拒时才会暴露——如果只需要读，read 能力已经可用。",
