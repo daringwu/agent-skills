@@ -15,8 +15,38 @@
 
     "writePriority": {
       "value": false,
-      "note": "不写 priority / priority_label，除非用户明确要求填优先级。",
-      "source": "已确立"
+      "note": "默认不写 priority / priority_label；只有用户明确提供优先级时才写。",
+      "source": "用户确认 2026-09-10"
+    },
+
+    "storyAssociation": {
+      "value": "ask-from-current-iteration",
+      "note": "未指定 Story 时停止，列出当前迭代的 Story，由用户选择后再创建任务。",
+      "source": "用户确认 2026-09-10"
+    },
+
+    "batchPreviewFields": {
+      "value": ["operation", "taskName", "story", "status", "owner", "dates", "effort", "dailyTimesheets", "memo"],
+      "note": "批量确认预览的最小字段集合。",
+      "source": "用户确认 2026-09-10"
+    },
+
+    "taskDescription": {
+      "value": "deliverable-and-scope",
+      "note": "任务描述写可验收产出与范围；AI 可基于客观活动记录起草，写入前由用户确认。",
+      "source": "用户确认 2026-09-10"
+    },
+
+    "timesheetMemo": {
+      "value": "actual-work-of-the-day",
+      "note": "每日工时备注写当天实际完成的具体内容；AI 可起草，写入前由用户确认。",
+      "source": "用户确认 2026-09-10"
+    },
+
+    "choresName": {
+      "value": "ask",
+      "note": "新建 Chores 容器时名称每次由用户提供，AI 不设置默认名称。",
+      "source": "用户确认 2026-09-10"
     },
 
     "statusFields": {
@@ -90,9 +120,9 @@
     },
 
     "allowWeekendHours": {
-      "value": false,
-      "note": "默认不把工时排到周末；用户明确允许时才可以。",
-      "source": "已确立（默认值来自原文 avoid weekends unless the user allows them）"
+      "value": { "userProvided": true, "aiReschedule": false },
+      "note": "用户明确提供的周末日期正常记录，不额外确认；AI 不得自行把工时调整到周末。",
+      "source": "用户确认 2026-09-10"
     }
   }
 }
