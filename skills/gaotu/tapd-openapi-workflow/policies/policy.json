@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "skill": "tapd-openapi-workflow",
-  "updated": "2026-08-27",
+  "updated": "2026-09-10",
   "shared": ["work-attribution"],
 
   "_readme": "量化口径的唯一事实源。value 为 null = 尚未定义，必须先问用户，绝不自行假设或沿用示例值。判断类口径见同目录 *.md。",
 
   "rules": {
     "taskNamePrefix": {
-      "value": { "frontend": "【FE】" },
-      "note": "前端任务名统一前缀，用于按 prefix 过滤统计（tapd_tool.mjs daily-hours --prefix）。",
-      "source": "已确立"
+      "value": "ask",
+      "note": "任务名前缀每次由用户提供；AI 不默认添加任何前缀。",
+      "source": "用户确认 2026-09-10"
     },
 
     "writePriority": {
@@ -42,51 +42,51 @@
     },
 
     "taskGranularity": {
-      "value": null,
-      "note": "活动清单上的多行怎么合并成一个 TAPD 任务行。允许值：by-deliverable / by-pr / by-tapd-story。",
-      "todo": "选一个。按可验收产出（任务少、名字读得懂）/ 按 PR（客观但碎）/ 跟随 TAPD 需求（和产品对得上，但需求粗时工时全堆一条）。"
+      "value": "by-deliverable",
+      "note": "按可验收产出合并：一个功能、页面或接口可包含多个 PR。",
+      "source": "用户确认 2026-09-10"
     },
 
     "reworkAttribution": {
-      "value": null,
-      "note": "调研、返工、修自己引入的 bug 算独立任务还是并进原任务。允许值：merge-into-original / separate-task。",
-      "todo": "并进原任务会让任务列表更干净；独立成任务则保留了返工成本的信息。"
+      "value": "merge-into-original",
+      "note": "调研、返工及修复自己引入的 bug 并入原任务，在工时备注中说明。",
+      "source": "用户确认 2026-09-10"
     },
 
     "nonCodeWork": {
-      "value": null,
-      "note": "评审、联调、答疑、值班这类无代码产出的工作放哪。允许值：chores / regular-task。",
-      "todo": "走 Chores 能保住「技术任务总工时」这个口径不失真；建成普通任务则统计更完整。"
+      "value": "chores",
+      "note": "评审、联调、答疑、会议和值班等无代码产出统一进入 Chores。",
+      "source": "用户确认 2026-09-10"
     },
 
     "hoursAllocation": {
-      "value": null,
-      "note": "一天的工时怎么分配到多个任务。允许值：total-then-split（先定当天总数再分摊）/ per-task-sum（逐任务估完加总）。",
-      "todo": "per-task-sum 的总数几乎必然超出实际工作时长，然后要回头压缩。total-then-split 更贴近实际但需要先定当天总数。"
+      "value": "user-provided-only",
+      "note": "工时只使用用户人工提供的数字；AI 只整理客观活动证据，不从提交、改动量、考勤或日报估算工时。",
+      "source": "用户确认 2026-09-10"
     },
 
     "sameDaySplit": {
-      "value": null,
-      "note": "同一天做了多个任务时，工时按什么比例分。允许值：even / by-commit-count / ask。",
-      "todo": "依赖 hoursAllocation —— 选了 total-then-split 才需要这条。"
+      "value": "ask",
+      "note": "同一天多个任务的工时由用户提供或确认，AI 不自动平均或按 commit 数换算。",
+      "source": "用户确认 2026-09-10"
     },
 
     "dailyHoursCap": {
-      "value": null,
-      "note": "单日工时上限。重排工时（避免某天过载）时，只移动导致超过此值的行。",
-      "todo": "定一个数字。原文只写了 exceed the target 但没定义 target。要问：上限是 8？还是按人日 6？超过时是移到前一天还是后一天？"
+      "value": 8,
+      "note": "单日超过 8h 只警告，不自动重排；用户确认后仍可按实际值写入。",
+      "source": "用户确认 2026-09-10"
     },
 
     "minTimesheetIncrement": {
-      "value": null,
-      "note": "工时最小记账粒度，写入 timespent 前按此取整。",
-      "todo": "定一个数字（0.5h / 1h / 不取整）。以及取整方向：四舍五入 / 向上 / 向下。"
+      "value": { "increment": 0.5, "rounding": "nearest", "confirmationRequiredWhenChanged": true },
+      "note": "不符合 0.5h 粒度时展示原值和四舍五入结果，经用户确认后写入。",
+      "source": "用户确认 2026-09-10"
     },
 
     "effortEqualsCompleted": {
-      "value": null,
-      "note": "已完成任务的估算 effort 是否等于实际完成工时。",
-      "todo": "原文写的是 usually ... if that is the team's convention —— 也就是没定。要问：默认相等，还是默认留 0，还是每次问？"
+      "value": true,
+      "note": "已完成任务的 effort 等于最终 timesheet 总和。",
+      "source": "用户确认 2026-09-10"
     },
 
     "allowWeekendHours": {

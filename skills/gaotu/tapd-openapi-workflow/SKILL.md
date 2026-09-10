@@ -108,6 +108,7 @@ Prefer the script for reads, daily-hour audits, and simple writes. For complex m
 - **机制**（怎么调）：`references/tapd-api-notes.md` —— endpoint、字段语义、限制、报错。
 - **口径**（填什么）：`policies/` —— `policy.json` 是量化口径的唯一事实源，
   `hours.md` / `fields-and-naming.md` 是需要判断的部分，
+  `write-safety.md` 是写入确认、冲突与验证规则，
   `policies/shared/work-attribution.md` 是跨 skill 的工作归因口径。
 
 不要在 SKILL.md 或 references 里重复口径值，会不同步。
