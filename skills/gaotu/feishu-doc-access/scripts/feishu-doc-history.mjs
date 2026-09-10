@@ -150,24 +150,38 @@ async function main() {
   const entries = [];
   let pageToken = "";
   let page = 0;
+  let identity = "";
+  let hasMore = false;
   while (true) {
     const json = runHistoryPage({ ...options, pageToken }, env);
     if (!json.ok) throw new Error(JSON.stringify(json, null, 2));
+    if (json.identity !== "user") throw new Error(`身份校验失败：期望 user，实际 ${json.identity || "未返回"}`);
+    identity = json.identity;
     const pageEntries = json.data?.entries ?? [];
     entries.push(...pageEntries);
     page += 1;
     console.error(`page ${page}: ${pageEntries.length}`);
-    if (!json.data?.has_more) break;
+    hasMore = json.data?.has_more === true;
+    if (!hasMore) break;
+    if (!json.data?.page_token) throw new Error("分页响应声明 has_more=true，但未返回 page_token；已停止，避免产生不完整审计结果");
     pageToken = json.data.page_token;
     await new Promise((resolve) => setTimeout(resolve, 1200));
   }
 
   const uniqueEntries = dedupe(entries);
   const summary = summarize(uniqueEntries, options.timezone);
+  const evidence = {
+    identity,
+    timezone: options.timezone,
+    page_count: page,
+    has_more: hasMore,
+    pagination_complete: hasMore === false,
+    cli_package: env.LARK_CLI_PKG || "@larksuite/cli@1.0.90",
+  };
   fs.mkdirSync(path.dirname(options.out), { recursive: true });
-  fs.writeFileSync(`${options.out}-all.json`, JSON.stringify({ ok: true, doc: options.doc, entries: uniqueEntries }, null, 2));
-  fs.writeFileSync(`${options.out}-daily-summary.json`, JSON.stringify({ ok: true, doc: options.doc, total: uniqueEntries.length, summary }, null, 2));
-  console.log(JSON.stringify({ total: uniqueEntries.length, all: `${options.out}-all.json`, daily: `${options.out}-daily-summary.json` }, null, 2));
+  fs.writeFileSync(`${options.out}-all.json`, JSON.stringify({ ok: true, doc: options.doc, ...evidence, entries: uniqueEntries }, null, 2));
+  fs.writeFileSync(`${options.out}-daily-summary.json`, JSON.stringify({ ok: true, doc: options.doc, ...evidence, total: uniqueEntries.length, summary }, null, 2));
+  console.log(JSON.stringify({ total: uniqueEntries.length, ...evidence, all: `${options.out}-all.json`, daily: `${options.out}-daily-summary.json` }, null, 2));
 }
 
 main().catch((error) => {

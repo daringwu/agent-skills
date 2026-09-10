@@ -114,6 +114,10 @@ Response fields:
 - `has_more`
 - `page_token`
 
+`scripts/feishu-doc-history.mjs` 生成的完整记录和每日汇总都会同时写入
+`identity=user`、时区、页数、最终 `has_more`、`pagination_complete` 和固定 CLI
+包版本，因而无需额外调用原始接口来证明用户身份和分页是否完整。
+
 Fetch historical snapshot:
 
 ```bash

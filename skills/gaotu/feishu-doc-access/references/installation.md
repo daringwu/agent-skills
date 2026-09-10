@@ -20,6 +20,12 @@ https://raw.githubusercontent.com/daringwu/agent-skills/main/tools/install-skill
 
 macOS/Linux 可用 `curl` 下载；Windows PowerShell 可用 `Invoke-WebRequest -OutFile` 下载。下载后使用相同的 `node` 命令，参数不因平台变化。
 
+可先查看完整参数，不需要提供安装目标：
+
+```text
+node install-skill-from-github.mjs --help
+```
+
 ## 首次验证
 
 ```text

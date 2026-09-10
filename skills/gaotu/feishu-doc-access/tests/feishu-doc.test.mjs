@@ -14,6 +14,7 @@ const tool = path.join(skill, "scripts", "feishu-doc.mjs");
 const historyTool = path.join(skill, "scripts", "feishu-doc-history.mjs");
 const statusTool = path.join(skill, "scripts", "checks", "lark-status.mjs");
 const updateCheck = path.join(skill, "scripts", "check-update.mjs");
+const preflight = path.join(skill, "scripts", "preflight.mjs");
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), "feishu-doc-test-"));
 const bin = path.join(temp, "bin");
 const config = path.join(temp, "config");
@@ -116,12 +117,36 @@ test("history uses policy timezone and refuses silent overwrite", async () => {
   const first = await exec(process.execPath, [historyTool, "--doc", "docx_test", "--out", "outputs/history"], { env, cwd: workspace });
   assert.equal(JSON.parse(first.stdout).total, 1);
   const summary = JSON.parse(fs.readFileSync(path.join(workspace, "outputs", "history-daily-summary.json"), "utf8"));
+  assert.equal(summary.identity, "user");
+  assert.equal(summary.page_count, 1);
+  assert.equal(summary.has_more, false);
+  assert.equal(summary.pagination_complete, true);
+  assert.equal(summary.timezone, "Asia/Shanghai");
   assert.equal(summary.summary[0].day, "2026-09-11");
   assert.equal(summary.summary[0].timezone, "Asia/Shanghai");
   await assert.rejects(
     exec(process.execPath, [historyTool, "--doc", "docx_test", "--out", "outputs/history"], { env, cwd: workspace }),
     (error) => error.code === 10 && /confirmation_required/.test(error.stdout),
   );
+});
+
+test("preflight in an isolated first-use config reports only actionable missing setup", async () => {
+  const isolatedConfig = path.join(temp, "isolated-first-use");
+  let error;
+  try {
+    await exec(process.execPath, [preflight, "--capability", "user-oauth-read", "--no-cache", "--json"], {
+      env: { ...env, AGENT_SKILLS_HOME: isolatedConfig, LARK_PROFILE: "" }, cwd: workspace,
+    });
+  } catch (value) { error = value; }
+  assert.equal(error?.code, 20);
+  const report = JSON.parse(error.stdout);
+  assert.equal(report.status, "BLOCKED");
+  assert.equal(report.requirements["lark-profile-name"].ok, false);
+  assert.equal(report.requirements["lark-profile-name"].skipped, false);
+  assert.equal(report.requirements["lark-profile"].skipped, true);
+  assert.equal(report.requirements["lark-user-identity"].skipped, true);
+  assert.match(JSON.stringify(report), /config init/);
+  assert.match(JSON.stringify(report), /feishu-doc-access/);
 });
 
 test("update check reports a newer version and stays silent offline", async () => {
@@ -133,7 +158,7 @@ test("update check reports a newer version and stays silent offline", async () =
   const url = `http://127.0.0.1:${server.address().port}/version.json`;
   const freshConfig = path.join(temp, "update-config");
   const result = await exec(process.execPath, [updateCheck], { env: { ...env, AGENT_SKILLS_HOME: freshConfig, FEISHU_VERSION_URL: url, FEISHU_UPDATE_CACHE_MS: "0" } });
-  assert.match(result.stdout, /2\.0\.0 → 9\.0\.0/);
+  assert.match(result.stdout, /2\.1\.0 → 9\.0\.0/);
   assert.match(result.stdout, /install-skill-from-github\.mjs/);
   await new Promise((resolve) => server.close(resolve));
   const offline = await exec(process.execPath, [updateCheck], { env: { ...env, AGENT_SKILLS_HOME: path.join(temp, "offline-config"), FEISHU_VERSION_URL: "http://127.0.0.1:1/version.json", FEISHU_UPDATE_TIMEOUT_MS: "20" } });

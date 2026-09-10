@@ -12,10 +12,36 @@ function fail(message) {
   process.exit(2);
 }
 
+function printHelp() {
+  console.log(`Install one SKILL.md-compatible skill from a GitHub repository path.
+
+Usage:
+  node install-skill-from-github.mjs --dest <skill-directory> [options]
+
+Options:
+  --repo <owner/repository>  GitHub repository (default: daringwu/agent-skills)
+  --ref <branch-or-tag>      Git ref (default: main)
+  --path <skill-path>        Path in repo (default: skills/gaotu/feishu-doc-access)
+  --dest <skill-directory>   Final local skill directory (required)
+  -h, --help                 Show this help
+
+Examples:
+  node install-skill-from-github.mjs --path skills/gaotu/feishu-doc-access --dest <agent-skills-dir>/feishu-doc-access
+  node install-skill-from-github.mjs --path skills/gaotu/tapd-openapi-workflow --dest <agent-skills-dir>/tapd-openapi-workflow
+
+Requires Node.js 20+ and Git. The installer uses sparse checkout and does not clone
+the complete working tree. Existing installations are backed up under the shared
+agent-skills configuration directory.`);
+}
+
 function args(argv) {
   const out = { repo: "daringwu/agent-skills", ref: "main", skillPath: "skills/gaotu/feishu-doc-access", dest: "" };
   for (let i = 0; i < argv.length; i += 1) {
     const key = argv[i];
+    if (key === "--help" || key === "-h") {
+      printHelp();
+      process.exit(0);
+    }
     const value = argv[++i];
     if (!value) fail(`missing value for ${key}`);
     if (key === "--repo") out.repo = value;
