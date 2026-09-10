@@ -4,7 +4,7 @@
 
 ### Temporary user OAuth via `lark-cli auth login`
 
-Use when the user needs Codex to read documents that are visible to the user, especially private wiki/docx pages and edit history.
+Use when an Agent needs to read documents visible to the user, especially private wiki/docx pages and edit history.
 
 Observed behavior in this environment:
 - access token lifetime: about 2 hours
@@ -14,7 +14,7 @@ Observed behavior in this environment:
 - user can revoke locally:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> auth logout
+npx -y @larksuite/cli@1.0.90 --profile <profile> auth logout
 ```
 
 Important language to use with the user:
@@ -23,21 +23,9 @@ Important language to use with the user:
 - “I will request only the scopes needed for this task.”
 - “The authorization can be revoked with `auth logout` or from Feishu account/app authorization management.”
 
-### Long-lived app/bot access
+### Identity boundary
 
-Use when repeatable automation is desired and a Feishu app already has approved scopes and document access.
-
-Characteristics:
-- app id and app secret are long-lived until rotated or revoked
-- app scopes must be approved/enabled in the Feishu developer console
-- app/bot may read only documents it has permission to access
-- tenant token is short-lived but can be reissued with app secret
-
-Safety rules:
-- never store app secret in a skill
-- prefer `.env` or existing project secret storage
-- do not print secrets
-- report missing scopes and console URLs without pasting secret values
+This skill is user-only. Never execute a Feishu document operation as bot/app and never fall back to bot/app when user OAuth is unavailable. A profile may require application configuration to start OAuth, but the operation identity must still be `user`.
 
 ### Local existing profile
 
@@ -46,19 +34,9 @@ Use when `lark-cli whoami --profile <profile>` already works.
 Recommended check:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> whoami
-npx -y @larksuite/cli@latest --profile <profile> auth status
+npx -y @larksuite/cli@1.0.90 --profile <profile> whoami
+npx -y @larksuite/cli@1.0.90 --profile <profile> auth status
 ```
-
-### One-off raw OpenAPI scripts
-
-Use when `lark-cli` is unavailable but `.env` contains `FEISHU_APP_ID` and `FEISHU_APP_SECRET`.
-
-This is good for tenant-token API reads such as:
-- wiki node resolution
-- docx raw content, if scopes and permissions allow
-
-It is weaker for user-private document history unless OAuth user scopes are available.
 
 ## Scope Safety Table
 
@@ -79,7 +57,7 @@ Ask before requesting contact scopes unless name mapping is essential.
 Local logout:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> auth logout
+npx -y @larksuite/cli@1.0.90 --profile <profile> auth logout
 ```
 
 Config location observed:

@@ -14,7 +14,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -160,6 +160,15 @@ function run(cmd, env, timeoutMs) {
   }
 }
 
+function runFile(file, args, env, timeoutMs) {
+  try {
+    const stdout = execFileSync(file, args, { encoding: "utf8", timeout: timeoutMs ?? 30000, stdio: ["ignore", "pipe", "pipe"], env });
+    return { code: 0, out: stdout ?? "" };
+  } catch (e) {
+    return { code: typeof e.status === "number" ? e.status : 1, out: `${e.stdout ?? ""}${e.stderr ?? ""}`, killed: e.killed === true || e.signal != null };
+  }
+}
+
 function parseVersion(text) {
   const m = /(\d+)\.(\d+)(?:\.(\d+))?/.exec(text ?? "");
   if (!m) return null;
@@ -179,6 +188,17 @@ function versionAtLeast(found, min) {
 
 function checkRequirement(id, req, ctx) {
   const kind = req.kind ?? "command";
+
+  if (kind === "node-script") {
+    const spec = typeof req.check === "string" ? { path: req.check, args: [] } : req.check;
+    const script = path.resolve(ctx.skillDir, spec.path);
+    const args = (spec.args ?? []).map((value) => expandPath(String(value), ctx));
+    const r = runFile(process.execPath, [script, ...args], ctx.env.merged, req.timeoutMs);
+    const text = r.out.trim();
+    if (r.killed) return { ok: false, note: `检查超时（${req.timeoutMs ?? 30000}ms）：${spec.path}` };
+    if (r.code !== 0) return { ok: false, note: `命令失败：${(text.split("\n").filter(Boolean)[0] ?? `exit ${r.code}`).slice(0, 200)}` };
+    return { ok: true, note: text.split("\n").filter(Boolean)[0]?.slice(0, 120) || "通过" };
+  }
 
   if (kind === "env") {
     const names = Array.isArray(req.check) ? req.check : [req.check];
@@ -358,7 +378,7 @@ function renderHuman(ev, opts) {
   if (!blockers.length) {
     L.push("所有前提条件已满足，可以直接开始。");
     const perms = envFilePerms(p.envFile);
-    if (perms && perms !== "600") {
+    if (process.platform !== "win32" && perms && perms !== "600") {
       L.push("");
       L.push(`⚠️  凭据文件权限是 ${perms}，建议改为 600：chmod 600 ${p.envFile}`);
     }
@@ -380,7 +400,11 @@ function renderHuman(ev, opts) {
   const missingEnv = actionable.some((id) => manifest.requirements[id].kind === "env");
   if (missingEnv) {
     L.push("先准备配置文件：");
-    L.push(`  mkdir -p "${p.dir}" && touch "${p.envFile}" && chmod 600 "${p.envFile}" && \${EDITOR:-vi} "${p.envFile}"`);
+    if (process.platform === "win32") {
+      L.push(`  New-Item -ItemType Directory -Force '${p.dir}' | Out-Null; New-Item -ItemType File -Force '${p.envFile}' | Out-Null; notepad '${p.envFile}'`);
+    } else {
+      L.push(`  mkdir -p "${p.dir}" && touch "${p.envFile}" && chmod 600 "${p.envFile}" && \${EDITOR:-vi} "${p.envFile}"`);
+    }
     L.push("");
   }
 
@@ -428,7 +452,7 @@ function renderExplain(manifest) {
   L.push(`# ${manifest.name} — 前提条件说明`);
   if (manifest.summary) L.push(`\n${manifest.summary}`);
   L.push(`\n凭据与状态目录：\`${p.dir}\``);
-  L.push(`凭据文件：\`${p.envFile}\`（chmod 600，不进仓库）`);
+  L.push(`凭据文件：\`${p.envFile}\`（${process.platform === "win32" ? "仅当前用户可访问" : "chmod 600"}，不进仓库）`);
   L.push("\n## 能力与依赖\n");
   for (const [id, cap] of Object.entries(manifest.capabilities)) {
     L.push(`- **${id}** — ${cap.label ?? ""}${cap.description ? `：${cap.description}` : ""}`);

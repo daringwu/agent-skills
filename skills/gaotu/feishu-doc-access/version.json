@@ -1,0 +1,7 @@
+{
+  "version": "2.0.0",
+  "repository": "https://github.com/daringwu/agent-skills",
+  "ref": "main",
+  "path": "skills/gaotu/feishu-doc-access",
+  "configDir": "~/.config/agent-skills/feishu-doc-access"
+}

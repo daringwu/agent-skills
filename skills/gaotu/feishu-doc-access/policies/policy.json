@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "skill": "feishu-doc-access",
-  "updated": "2026-08-27",
+  "updated": "2026-09-10",
   "shared": ["work-attribution"],
 
   "_readme": "量化口径的唯一事实源。value 为 null = 尚未定义，必须先问用户，绝不自行假设。判断类口径见同目录 *.md。",
@@ -41,6 +41,36 @@
       "value": "evidence-only",
       "note": "编辑次数只能当作「做过」的证据，不能换算成工时。允许值：evidence-only。",
       "source": "已确立"
+    },
+
+    "identity": {
+      "value": "user-only",
+      "note": "所有飞书操作只允许用户 OAuth 身份，不使用或回退到 bot/app。",
+      "source": "用户确认"
+    },
+
+    "scopeGrant": {
+      "value": "incremental",
+      "note": "只为当前任务增量申请最小 scope。",
+      "source": "用户确认"
+    },
+
+    "batchFailure": {
+      "value": "stop-and-inspect",
+      "note": "批量操作首项失败即停止，回读并分类报告，不自动继续或重试。",
+      "source": "用户确认"
+    },
+
+    "highRiskSnapshot": {
+      "value": "required",
+      "note": "覆盖、正文回滚或大范围删除前必须在工作区保存完整内容和 revision 快照。",
+      "source": "用户确认"
+    },
+
+    "implementationCoverage": {
+      "value": "core-orchestration",
+      "note": "核心高频能力由本 Skill 编排和测试，其余能力按需路由到官方 lark-cli。",
+      "source": "用户确认"
     }
   }
 }

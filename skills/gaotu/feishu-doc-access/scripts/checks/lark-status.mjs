@@ -5,9 +5,9 @@
 // Usage: node lark-status.mjs --mode profile|user
 // exit 0 = pass, exit 1 = fail. First stdout line becomes the preflight note.
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
-const PKG = process.env.LARK_CLI_PKG || "@larksuite/cli@latest";
+const PKG = process.env.LARK_CLI_PKG || "@larksuite/cli@1.0.90";
 const PROFILE = process.env.LARK_PROFILE || "";
 const mode = (() => {
   const i = process.argv.indexOf("--mode");
@@ -23,7 +23,7 @@ if (!PROFILE) fail("LARK_PROFILE 未设置，无法确定要检查哪个 lark-cl
 
 let raw;
 try {
-  raw = execSync(`npx -y ${PKG} --profile "${PROFILE}" auth status`, {
+  raw = execFileSync("npx", ["-y", PKG, "--profile", PROFILE, "auth", "status"], {
     encoding: "utf8",
     timeout: 90000,
     stdio: ["ignore", "pipe", "pipe"],

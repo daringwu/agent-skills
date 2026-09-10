@@ -7,21 +7,21 @@ These notes capture verified paths and commands from the 2026-08-16 investigatio
 Use:
 
 ```bash
-npx -y @larksuite/cli@latest <domain> ...
+npx -y @larksuite/cli@1.0.90 <domain> ...
 ```
 
 Profile examples:
 
 ```bash
-npx -y @larksuite/cli@latest --profile codex-feishu-history whoami
-npx -y @larksuite/cli@latest --profile codex-feishu-history auth status
+npx -y @larksuite/cli@1.0.90 --profile codex-feishu-history whoami
+npx -y @larksuite/cli@1.0.90 --profile codex-feishu-history auth status
 ```
 
 Initialize an app profile from existing env vars:
 
 ```bash
 set -a; source /path/to/.env; set +a
-printf '%s' "$FEISHU_APP_SECRET" | npx -y @larksuite/cli@latest \
+printf '%s' "$FEISHU_APP_SECRET" | npx -y @larksuite/cli@1.0.90 \
   config init --app-id "$FEISHU_APP_ID" \
   --app-secret-stdin --brand feishu --name <profile>
 ```
@@ -29,21 +29,21 @@ printf '%s' "$FEISHU_APP_SECRET" | npx -y @larksuite/cli@latest \
 Start user OAuth without blocking:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> auth login \
+npx -y @larksuite/cli@1.0.90 --profile <profile> auth login \
   --scope '<scopes>' --no-wait --json
 ```
 
 Then generate QR:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> auth qrcode '<verification_url>' \
+npx -y @larksuite/cli@1.0.90 --profile <profile> auth qrcode '<verification_url>' \
   --output outputs/feishu-auth-qrcode.png
 ```
 
 After user confirms:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> auth login \
+npx -y @larksuite/cli@1.0.90 --profile <profile> auth login \
   --device-code '<device_code>'
 ```
 
@@ -57,7 +57,7 @@ Common URLs:
 Resolve wiki:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   wiki spaces get_node --as user --token <wiki_node_token>
 ```
 
@@ -73,7 +73,7 @@ Underlying fields:
 CLI:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +fetch --as user --doc '<url-or-token>' \
   --scope full --doc-format markdown --detail simple --format json
 ```
@@ -101,7 +101,7 @@ GET /open-apis/docs_ai/v1/documents/{document_id}/histories
 CLI wrapper:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +history-list --as user --doc '<wiki-or-doc-url>' \
   --page-size 20 --format json
 ```
@@ -117,7 +117,7 @@ Response fields:
 Fetch historical snapshot:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +fetch --as user --doc '<url>' \
   --revision-id <revision_id> \
   --scope full --doc-format markdown --detail simple --format json
@@ -126,7 +126,7 @@ npx -y @larksuite/cli@latest --profile <profile> \
 Outline snapshot:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +fetch --as user --doc '<url>' \
   --revision-id <revision_id> \
   --scope outline --max-depth 3 --doc-format markdown --format json
@@ -135,7 +135,7 @@ npx -y @larksuite/cli@latest --profile <profile> \
 ## Drive Metadata
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   drive metas batch_query --as user \
   --data '{"request_docs":[{"doc_token":"<obj_token>","doc_type":"docx"}],"with_url":true}'
 ```
@@ -175,10 +175,6 @@ Examples:
 - `docx:document:readonly`
 - `wiki:node:read`
 - `drive:drive.metadata:readonly`
-
-### `app_scope_not_applied`
-
-The bot/app does not have the required scope enabled in the Feishu developer console. User OAuth might still work, but bot automation will not until the app scope is approved.
 
 ### `file no exist` on Drive history
 

@@ -1,32 +1,34 @@
 ---
 name: feishu-doc-access
-description: Access, read, export, and audit Feishu/Lark Docs, Wiki pages, Docx documents, Drive metadata, and document edit history using lark-cli or Feishu OpenAPI. Use when the user provides feishu.cn, larksuite.com, or org-specific Feishu wiki/docx/docs URLs or asks to read Feishu documents, fetch Feishu wiki content, inspect Feishu edit history, summarize document changes by date, compare historical revisions, resolve document tokens, or reason about temporary vs long-lived Feishu authorization and data-safety implications.
+description: Orchestrate Feishu/Lark document work with user OAuth, including reading, creating, editing, exporting, auditing history, resolving Wiki nodes, Drive operations, comments, and permissions through official lark-cli capabilities. Use for Feishu, Lark, or organization-specific docx/wiki/docs/drive URLs and for safe plan-confirm-execute-verify document workflows.
 ---
 
 # Feishu Doc Access
 
 ## 门禁：每次使用本 skill 的第一步
 
-1. 先运行 `node <本 skill 目录>/scripts/preflight.mjs`（如 `~/.codex/skills/feishu-doc-access/scripts/preflight.mjs`
-   或 `~/.claude/skills/feishu-doc-access/scripts/preflight.mjs`）。**在它返回之前不要执行任何其他命令。**
-2. 退出码：`0` = 全部能力就绪；`10` = 部分就绪；`20` = 全部阻塞；`2` = 清单/用法错误。
-3. 退出码 `20`：**停下**。把输出整理成三段交给用户——AI 能直接做的 / 需要用户确认的 / 只能用户自己做的。
+1. 先运行 `node <本 skill 目录>/scripts/check-update.mjs`。它最多等待 3 秒、缓存 24 小时；离线、超时或检查失败时静默继续。仅在远端版本更高时转告来源、当前版本、新版本和更新命令，不强制更新。
+2. 再运行 `node <本 skill 目录>/scripts/preflight.mjs`；安装目录由当前 Agent 决定，不依赖某个产品的固定路径。**在它返回之前不要执行任何其他命令。**
+3. 退出码：`0` = 全部能力就绪；`10` = 部分就绪；`20` = 全部阻塞；`2` = 清单/用法错误。
+4. 退出码 `20`：**停下**。把输出整理成三段交给用户——AI 能直接做的 / 需要用户确认的 / 只能用户自己做的。
    不要尝试绕过，不要自行安装，不要改用浏览器、连接器或抓取等替代路径。
-4. 退出码 `10`：只使用 READY 的能力，并明确告诉用户哪个能力不可用、缺什么。
+5. 退出码 `10`：只使用 READY 的能力，并明确告诉用户哪个能力不可用、缺什么。
    只关心某一个能力时用 `--capability <id>`，它会按该能力单独给出退出码。
-5. 只安装 `requirements.json` 里 `tier: "auto"` 的项，方式是 `node <skill 目录>/scripts/setup.mjs`。
+6. 只安装 `requirements.json` 里 `tier: "auto"` 的项，方式是 `node <skill 目录>/scripts/setup.mjs`。
    它只执行清单里写死的命令。**绝不自己编 install 命令**；`tier: "assisted"` 有全局副作用，必须先向用户说明并取得同意（`--yes-assisted`）。
-6. `tier: "manual"` 的项一律交给用户，不要代做，也不要猜测替代方案。
-7. 凭据只写入 `~/.config/agent-skills/feishu-doc-access/env`（chmod 600）。不要回显值、不要写进仓库、不要贴进对话。
-8. 要给用户看完整前提说明（不做任何检查）：`node scripts/preflight.mjs --explain`。
+7. `tier: "manual"` 的项一律交给用户，不要代做，也不要猜测替代方案。
+8. 凭据只写入用户配置目录的 `.config/agent-skills/feishu-doc-access/env`；macOS/Linux 权限设为 600，Windows 保持仅当前用户可访问。不要回显值、不要写进仓库、不要贴进对话。
+9. 要给用户看完整前提说明（不做任何检查）：`node scripts/preflight.mjs --explain`。
 
-9. 涉及「填什么值」的判断前，先读 `policies/policy.json`。**其中 `value` 为 `null` 的项表示口径尚未定义——
+10. 涉及「填什么值」的判断前，先读 `policies/policy.json`。**其中 `value` 为 `null` 的项表示口径尚未定义——
    必须先问用户，绝不自行假设、绝不沿用 note 里的示例值。** 判断类口径读 `policies/*.md`。
 
 前提条件的唯一事实源是 `requirements.json`，量化口径的唯一事实源是 `policies/policy.json`。
 本文档两者都不重复列举，以免不同步。
 
-Use this skill for Feishu/Lark document work: reading wiki/docx content, resolving wiki tokens, fetching metadata, pulling edit history, downloading/fetching revision snapshots, and explaining authorization safety.
+Use this skill as the user-only orchestration and safety layer for Feishu/Lark document work. Core high-frequency operations are implemented and tested here; other document-adjacent capabilities route on demand to the official `lark-cli` Docs, Wiki, or Drive commands instead of being copied into this skill.
+
+Never use or fall back to bot/app identity. Every Feishu operation must explicitly use `--as user`. Request OAuth scopes incrementally for the current task.
 
 Do not store Feishu app secrets, OAuth tokens, document bodies, or exported histories inside this skill. Keep task outputs in the current workspace `outputs/` or `work/`.
 
@@ -36,7 +38,23 @@ Do not store Feishu app secrets, OAuth tokens, document bodies, or exported hist
 2. If the task needs exact Feishu endpoints, scopes, token types, or known failure modes, read `references/apis.md`.
 3. If the task asks for full edit history or daily history aggregation, run or adapt `scripts/feishu-doc-history.mjs`.
 4. If the task only needs current document text, use the user-login `lark-cli docs +fetch` workflow below first.
-5. Preserve bot/app and direct OpenAPI workflows as fallbacks for explicit bot automation, service accounts, history tooling, or cases where the preferred user workflow cannot satisfy the request. Do not silently switch to a browser, connector, or scraper when the user chose `lark-cli`.
+5. If the user OAuth path cannot satisfy the request, stop and explain the missing login, scope, or resource permission. Do not switch identity or silently use a browser, connector, or scraper.
+
+Before any write, read `policies/write-safety.md`. It defines which single operations may run directly, which operations require plan/preview and confirmation, mandatory local snapshots, post-write verification, and stop-on-first-failure behavior.
+
+For the complete on-demand capability map, read `references/capability-routing.md` only after identifying the relevant Docs, Wiki, or Drive scenario. For cross-platform installation or update, read `references/installation.md`.
+
+## Core scripts
+
+Use `scripts/feishu-doc.mjs` for core read, inspect, and update workflows. It performs update checking, preflight, forces user identity, creates high-risk plans and snapshots, and verifies writes by rereading:
+
+```text
+node scripts/feishu-doc.mjs fetch --doc <url-or-token> --out outputs/document
+node scripts/feishu-doc.mjs inspect --doc <url-or-token> --out outputs/inspect
+node scripts/feishu-doc.mjs update --doc <url-or-token> --command str_replace --pattern <old> --content <new>
+```
+
+High-risk updates exit `10` with a plan hash. Show the preview to the user; after explicit confirmation rerun the same arguments with `--confirm <plan-hash>`. Do not invent or append confirmation yourself.
 
 ## Preferred Current-Document Workflow
 
@@ -45,23 +63,23 @@ For reading a current Wiki or Docx document, prefer a dedicated `lark-cli` profi
 ### 1. Inspect profiles before authentication
 
 ```bash
-npx -y @larksuite/cli@latest profile list
+npx -y @larksuite/cli@1.0.90 profile list
 ```
 
 If a suitable user-oriented profile exists, use it. Check its login state with:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> auth status
+npx -y @larksuite/cli@1.0.90 --profile <profile> auth status
 ```
 
-If the only available profile is an unrelated bot/app profile, do not authenticate through it without the user's explicit choice. Initialize a separate profile instead.
+If the only available profile is bot/app-oriented, do not use it. Initialize a separate user profile instead.
 
 ### 2. Initialize a dedicated profile when needed
 
 Use the official interactive setup and give the new profile a distinct name:
 
 ```bash
-npx -y @larksuite/cli@latest config init --name lark-cli-user
+npx -y @larksuite/cli@1.0.90 config init --name lark-cli-user
 ```
 
 The user may choose one-click app setup or manually supply an existing Feishu app's App ID and App Secret. Keep any existing profiles intact. Never expose or copy the App Secret into task outputs or chat.
@@ -71,7 +89,7 @@ The user may choose one-click app setup or manually supply an existing Feishu ap
 Follow the normal `lark-cli` login flow:
 
 ```bash
-npx -y @larksuite/cli@latest --profile lark-cli-user auth login --recommend
+npx -y @larksuite/cli@1.0.90 --profile lark-cli-user auth login --recommend
 ```
 
 The user completes the displayed Feishu authorization page. If `--recommend` reports that a few unrelated scopes were not granted but stores a valid user token and the document scopes were granted, inspect `auth status` and proceed without repeatedly requesting the rejected scopes.
@@ -81,12 +99,12 @@ The user completes the displayed Feishu authorization page. If `--recommend` rep
 Do not resolve a Wiki node first unless metadata or a lower-level API operation requires it. `docs +fetch` accepts Wiki URLs, Docx URLs, and document tokens directly:
 
 ```bash
-npx -y @larksuite/cli@latest --profile lark-cli-user \
-  docs +fetch --doc '<wiki-url-docx-url-or-token>' \
+npx -y @larksuite/cli@1.0.90 --profile lark-cli-user \
+  docs +fetch --as user --doc '<wiki-url-docx-url-or-token>' \
   --doc-format markdown --detail simple --format json
 ```
 
-Omit `--as` in this preferred flow and let the authenticated profile use its normal identity selection. Verify the response contains `"ok": true` and `"identity": "user"`. Save the complete JSON response, then extract `.data.document.content` as the Markdown deliverable.
+Always pass `--as user` and verify the response contains `"ok": true` and `"identity": "user"`. Save the complete JSON response, then extract `.data.document.content` as the Markdown deliverable.
 
 Use `--doc-format xml` for structure-preserving or diff-friendly work and `--detail full` only when styles, block IDs, or edit metadata are required.
 
@@ -99,7 +117,7 @@ The following lower-level workflow remains available for metadata, history, expl
 For a wiki URL, first resolve the wiki node to an underlying object token:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   wiki spaces get_node --as user --token <wiki_node_token> --format json
 ```
 
@@ -112,7 +130,7 @@ Useful fields:
 ### 2. Read current document content
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +fetch --as user --doc '<url-or-token>' \
   --scope full --doc-format markdown --detail simple --format json
 ```
@@ -124,7 +142,7 @@ For structured/diff-friendly snapshots, prefer `--doc-format xml`. For edit meta
 Use `docs +history-list`, not Drive file versions:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +history-list --as user --doc '<wiki-or-doc-url>' \
   --page-size 20 --format json
 ```
@@ -151,7 +169,7 @@ node <skill 目录>/scripts/feishu-doc-history.mjs \
 Once history returns `revision_id`, fetch a snapshot:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +fetch --as user --doc '<wiki-or-doc-url>' \
   --revision-id <revision_id> \
   --scope full --doc-format markdown --detail simple --format json
@@ -160,7 +178,7 @@ npx -y @larksuite/cli@latest --profile <profile> \
 Use outline snapshots to understand what changed by period:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   docs +fetch --as user --doc '<url>' \
   --revision-id <revision_id> \
   --scope outline --max-depth 3 --doc-format markdown --format json
@@ -171,7 +189,7 @@ npx -y @larksuite/cli@latest --profile <profile> \
 Use Drive metadata for created/modified/owner fields:
 
 ```bash
-npx -y @larksuite/cli@latest --profile <profile> \
+npx -y @larksuite/cli@1.0.90 --profile <profile> \
   drive metas batch_query --as user \
   --data '{"request_docs":[{"doc_token":"<obj_token>","doc_type":"docx"}],"with_url":true}'
 ```
@@ -189,13 +207,7 @@ For current observed `lark-cli` OAuth behavior:
 - access token expires in about 2 hours
 - refresh token expires in about 7 days
 - profile and refresh credentials are stored locally by `lark-cli`
-- the user can revoke locally with `npx -y @larksuite/cli@latest --profile <profile> auth logout`
-
-For long-lived app/bot access:
-- app id/secret are long-lived credentials until rotated or revoked
-- app scopes must be enabled in the Feishu developer console
-- bot/app access is suitable for repeatable automation only when the app has explicit document permissions
-- do not embed app secrets in skill files or final answers
+- the user can revoke locally with `npx -y @larksuite/cli@1.0.90 --profile <profile> auth logout`
 
 Read `references/auth-and-security.md` for the scope table and recommended wording.
 
@@ -226,3 +238,5 @@ Common scopes encountered:
 
 - `references/auth-and-security.md`: token lifetime, temporary vs long-term access, revocation, scope safety.
 - `references/apis.md`: verified commands, endpoints, errors, and troubleshooting.
+- `references/capability-routing.md`: official Docs, Wiki, and Drive capability inventory and on-demand routing.
+- `references/installation.md`: Agent-neutral installation and update on macOS, Linux, and Windows.

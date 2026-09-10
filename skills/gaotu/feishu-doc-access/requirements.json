@@ -6,14 +6,9 @@
 
   "capabilities": {
     "user-oauth-read": {
-      "label": "用户 OAuth 读文档与编辑历史（首选）",
-      "description": "以你本人身份读取可见的 wiki/docx 内容、元数据、编辑历史与历史版本快照。权限最小、可随时撤销。",
+      "label": "用户 OAuth 文档能力",
+      "description": "仅以你本人身份按任务增量授权，读取或操作可见的 Docx、Wiki 与 Drive 资源。",
       "requires": ["node", "lark-cli", "lark-profile-name", "lark-profile", "lark-user-identity"]
-    },
-    "app-openapi-read": {
-      "label": "应用凭据读文档（兜底）",
-      "description": "用长期有效的 App ID/Secret 走 tenant token 读文档，适合无人值守自动化。无法读取仅用户可见的私有文档历史。",
-      "requires": ["node", "feishu-app-credentials"]
     }
   },
 
@@ -25,19 +20,19 @@
       "order": 1,
       "check": "node -v",
       "minVersion": "20",
-      "guide": "装 Node 20 或更高版本（nvm install 20 / brew install node / nodejs.org），装完重跑 preflight。\nAI 不代装：装 Node 会改动 shell 环境和全局 PATH，应由你决定用哪种方式管理版本。"
+      "guide": "获取位置：https://nodejs.org/ 下载 Node.js 20 LTS 或更高版本。macOS/Linux 也可使用现有版本管理器；Windows 使用官网安装包或现有包管理器。\n字段与格式：需要 `node --version` 输出 v20.0.0 或更高；不要只安装浏览器版 JavaScript 环境，也不要把 npm 版本当 Node 版本。\n验证：node --version\nAI 不代装：安装 Node 会修改系统应用和 PATH，应由你选择安装方式。"
     },
 
     "lark-cli": {
       "tier": "auto",
-      "kind": "npx",
+      "kind": "node-script",
       "label": "lark-cli 可执行（通过 npx，不做全局安装）",
       "order": 2,
-      "check": "npx -y ${LARK_CLI_PKG:-@larksuite/cli@latest} --version",
-      "install": "npx -y ${LARK_CLI_PKG:-@larksuite/cli@latest} --version",
+      "check": { "path": "scripts/checks/lark-version.mjs" },
+      "install": "npx -y @larksuite/cli@1.0.90 --version",
       "timeoutMs": 120000,
       "cacheDays": 14,
-      "notes": "首次执行会下载包到 npx 缓存，之后是本地命中。已验证可用版本：1.0.90。要锁版本就在 env 里设 LARK_CLI_PKG=@larksuite/cli@1.0.90。"
+      "notes": "默认锁定已验证版本 1.0.90；首次执行下载到 npx 缓存，之后本地命中。升级必须随 Skill 发版并通过测试。"
     },
 
     "lark-profile-name": {
@@ -46,44 +41,33 @@
       "label": "选定要使用的 lark-cli profile 名",
       "order": 3,
       "check": ["LARK_PROFILE"],
-      "guide": "先看这台机器上有哪些 profile：\n  npx -y @larksuite/cli@latest profile list\n然后把要用的那个写进凭据文件，例如：\n  LARK_PROFILE=lark-cli-user\n如果一个都没有，先做下面的 lark-profile 那一步。\nAI 不代选：不要因为某个 bot/app profile 已经配好就拿它来读你的私人文档。"
+      "guide": "获取位置：运行 `npx -y @larksuite/cli@1.0.90 profile list`，读取 profile 的 name 字段。\n字段与格式：LARK_PROFILE=<完整 profile 名>，只填名称，不填 App ID、邮箱、飞书域名或整段 JSON；名称含空格时在 env 中写成双引号包裹的单行值。\n写入位置：用户目录下 .config/agent-skills/feishu-doc-access/env，不要贴到对话或提交仓库。\nmacOS/Linux：mkdir -p \"${HOME}/.config/agent-skills/feishu-doc-access\" && touch \"${HOME}/.config/agent-skills/feishu-doc-access/env\" && chmod 600 \"${HOME}/.config/agent-skills/feishu-doc-access/env\"\nWindows PowerShell：New-Item -ItemType Directory -Force \"$env:USERPROFILE\\.config\\agent-skills\\feishu-doc-access\"; notepad \"$env:USERPROFILE\\.config\\agent-skills\\feishu-doc-access\\env\"\n写入一行：LARK_PROFILE=<完整 profile 名>\n验证：node <skill目录>/scripts/preflight.mjs --capability user-oauth-read --no-cache\n如果没有 profile，先运行 `npx -y @larksuite/cli@1.0.90 config init --name lark-cli-user`；AI 不代选已有的 bot/app profile。"
     },
 
     "lark-profile": {
       "tier": "manual",
-      "kind": "command",
+      "kind": "node-script",
       "label": "该 profile 在 lark-cli 中已配置",
       "dependsOn": ["lark-cli", "lark-profile-name"],
       "order": 4,
-      "check": "node \"$SKILL_DIR/scripts/checks/lark-status.mjs\" --mode profile",
+      "check": { "path": "scripts/checks/lark-status.mjs", "args": ["--mode", "profile"] },
       "timeoutMs": 120000,
       "cacheDays": 30,
-      "guide": "交互式创建一个专用 profile（会问你 App ID / App Secret，或选一键创建应用）：\n  npx -y @larksuite/cli@latest config init --name lark-cli-user\n保留已有 profile，不要覆盖。\nAI 不代做：这是交互式流程，且要输入 App Secret。",
+      "guide": "获取位置：优先在官方交互流程中选择一键创建应用；如公司要求已有应用，则从飞书开放平台开发者后台的应用“凭证与基础信息”取得 App ID 和 App Secret。\n格式与常见误填：App ID 通常以 cli_ 开头；不要填 App 名称、Verification Token、Encrypt Key 或 tenant access token。App Secret 只在交互式终端输入，不写进仓库或对话。\n创建专用 profile（各平台相同）：\n  npx -y @larksuite/cli@1.0.90 config init --name lark-cli-user\n保留已有 profile，不要覆盖；完成后把 profile 名写入用户目录下 .config/agent-skills/feishu-doc-access/env。\n验证：npx -y @larksuite/cli@1.0.90 --profile lark-cli-user auth status\nAI 不代做：这是交互式流程且可能要求输入 App Secret。",
       "docs": "https://open.feishu.cn/app"
     },
 
     "lark-user-identity": {
       "tier": "manual",
-      "kind": "command",
+      "kind": "node-script",
       "label": "用户 OAuth 登录态有效",
       "dependsOn": ["lark-profile"],
       "order": 5,
       "volatile": true,
-      "check": "node \"$SKILL_DIR/scripts/checks/lark-status.mjs\" --mode user",
+      "check": { "path": "scripts/checks/lark-status.mjs", "args": ["--mode", "user"] },
       "timeoutMs": 120000,
       "minimalPermission": true,
-      "guide": "在浏览器里用你本人账号完成授权：\n  npx -y @larksuite/cli@latest --profile \"$LARK_PROFILE\" auth login --recommend\nAI 不代做：需要你本人在飞书授权页点同意。\n有效期：access token 约 2 小时，refresh token 约 7 天；过期后重跑上面的命令即可。\n撤销：npx -y @larksuite/cli@latest --profile \"$LARK_PROFILE\" auth logout"
-    },
-
-    "feishu-app-credentials": {
-      "tier": "manual",
-      "kind": "env",
-      "label": "飞书应用凭据（长期有效，仅兜底路径需要）",
-      "order": 6,
-      "check": ["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
-      "guide": "去飞书开放平台建自建应用，拿到 App ID / App Secret，并在开发者后台开启所需权限（docx:document:readonly、wiki:node:read、drive:drive.metadata:readonly）。\nAI 不代做：涉及长期有效的密钥，且权限开启通常要走企业审批。\n⚠ 只有需要无人值守自动化时才配这条；日常读文档走上面的用户 OAuth，权限更小。",
-      "approval": "自建应用权限开启一般需要企业管理员审批，快则当天、慢则数天",
-      "docs": "https://open.feishu.cn/app"
+      "guide": "获取位置：运行下面命令后，在打开的飞书授权页用本人账号确认。取得的是 lark-cli 本地保存的 user OAuth 登录态，不是要复制粘贴的 token。\n格式与常见误填：无需把 access token、refresh token、授权 URL 或二维码写入 env；不要把 bot 身份当 user 身份。把命令里的 <完整 profile 名> 替换成 profile list 返回的名称。\n授权：npx -y @larksuite/cli@1.0.90 --profile \"<完整 profile 名>\" auth login --recommend\n验证：npx -y @larksuite/cli@1.0.90 --profile \"<完整 profile 名>\" auth status\nAI 不代点授权；access token 约 2 小时、refresh token 约 7 天，过期后重新登录。\n撤销：npx -y @larksuite/cli@1.0.90 --profile \"<完整 profile 名>\" auth logout"
     }
   }
 }
